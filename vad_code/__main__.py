@@ -33,6 +33,8 @@ class AIOSBridge:
             "2. read_file(filepath) - читает содержимое файла.\n"
             "3. write_file(filepath, content) - записывает текст в файл (перезаписывает).\n\n"
             "ПРОТОКОЛ ВЗАИМОДЕЙСТВИЯ:\n"
+            "4. replace_in_file(filepath, old_text, new_text) - заменяет старый текст на новый в файле (экономит токены).`"
+            "- Пример вызова: `CALL: replace_in_file(filepath='путь', old_text='старый код', new_text='новый код')`"
             "- Если тебе нужно использовать инструмент, используй один из следующих форматов:\n"
             "  CALL: list_files(directory='путь/к/папке')\n"
             "  CALL: read_file(filepath='путь/к/файлу')\n"
@@ -54,6 +56,7 @@ class AIOSBridge:
             "list_files": self.list_files,
             "read_file": self.read_file,
             "write_file": self.write_file,
+            "replace_in_file": self.replace_in_file,  # Добавить это
         }
 
     def _trim_history(self) -> None:
@@ -99,6 +102,19 @@ class AIOSBridge:
         except Exception as e:
             return f"Ошибка при чтении файла: {str(e)}"
 
+    def replace_in_file(self, filepath: str, old_text: str, new_text: str) -> str:
+        try:
+            path = self.safe_path(filepath)
+            content = path.read_text(encoding="utf-8")
+            if old_text not in content:
+                return f"Ошибка: Точный текст для замены не найден в файле {filepath}."
+
+            new_content = content.replace(old_text, new_text)
+            path.write_text(new_content, encoding="utf-8")
+            return f"Файл {filepath} успешно обновлен (текст заменен)."
+        except Exception as e:
+            return f"Ошибка при обновлении файла {filepath}: {str(e)}"
+
     def write_file(self, filepath: str, content: str) -> str:
         try:
             path = self.safe_path(filepath)
@@ -129,8 +145,14 @@ class AIOSBridge:
         # Более надежный поиск всех пар ключ='значение'
         # Ищет: имя_аргумента = 'текст в одинарных кавычках' или "текст в двойных"
         args = {}
-        matches = re.findall(r"(\w+)\s*=\s*(['\"])(.*?)\2", call_text)
-        for key, quote, value in matches:
+        matches = re.findall(r"(\w+)\s*=\s*(['\"]{3}.*?['\"]{3}|'[^']*'|\"[^\"]*\")", call_text, re.DOTALL)
+        for key, value in matches:
+            # Убираем внешние кавычки (одинарные, двойные или тройные)
+            content = value[0]
+            if content == "'" or content == '"':
+                value = value[1:-1]
+            elif content == "'" * 3 or content == '"' * 3:
+                value = value[3:-3]
             args[key] = value
 
         try:
