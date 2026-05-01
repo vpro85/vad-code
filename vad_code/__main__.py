@@ -11,7 +11,7 @@ LM_STUDIO_URL = "http://127.0.0.1:1234/v1/chat/completions"
 MODEL_NAME = "google/gemma-4-31b"
 MAX_ITERATIONS = 50
 MAX_HISTORY_MESSAGES = 20
-TIMEOUT = 300
+TIMEOUT = 20 * 60
 ALLOWED_FUNCTIONS = {"list_files", "read_file"}
 
 
@@ -100,7 +100,7 @@ class AIOSBridge:
         """Парсит строку вида CALL: func(key='value') и вызывает нужную функцию"""
         func_match = re.search(r"CALL:\s*(\w+)\(", call_text)
         if not func_match:
-            return None # None - не валидный вызов, игнорируем
+            return None  # None - не валидный вызов, игнорируем
 
         func_name = func_match.group(1)
         if func_name not in ALLOWED_FUNCTIONS:
@@ -172,16 +172,14 @@ class AIOSBridge:
                 call_line = self._find_call_line(ai_response)
 
                 if call_line:
-                    observation = self.execute_call(call_line)
-                    if observation is None:
-                        # Ложное срабатывание — считаем это финальным ответом
-                        print(f"\n🤖 AI: {ai_response}\n")
-                        break
-
                     print(f"🤖 AI вызывает инструмент... ({i + 1}/{MAX_ITERATIONS})")
                     print(f"   ↳ {call_line.strip()}")
                     observation = self.execute_call(call_line)
                     print(f"📝 Результат: {observation[:120]}...")
+                    if observation is None:
+                        # Ложное срабатывание — считаем это финальным ответом
+                        print(f"\n🤖 AI: {ai_response}\n")
+                        break
 
                     # Добавляем результат выполнения функции в историю как сообщение от пользователя/системы
                     self.history.append({"role": "user", "content": f"OBSERVATION: {observation}"})
