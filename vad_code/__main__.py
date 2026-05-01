@@ -1,6 +1,7 @@
 """Главный модуль"""
 import os
 import re
+from pathlib import Path
 from typing import Optional
 
 import httpx
@@ -45,45 +46,53 @@ class AIOSBridge:
             "- Не используй CALL: в примерах или объяснениях.\n"
             "- Если инструмент не нужен — просто пиши финальный ответ без CALL.\n"
         )
-        # Здесь мы храним всю историю переписки для контекста локальной модели
-        # self.history = [
-        #     {"role": "system", "content": self.system_prompt},
-        # ]
         self.history: list[dict] = []
+        # Реестр доступных функций: имя_в_промпте -> метод_класса
+        self.tools = {
+            "list_files": self.list_files,
+            "read_file": self.read_file,
+        }
 
     def _trim_history(self) -> None:
-        """Обрезает историю, чтобы не переполнить контекстное окно модели"""
+        """Обрезает историю, сохраняя первое сообщение пользователя (цель)"""
         if len(self.history) > MAX_HISTORY_MESSAGES:
-            self.history = self.history[-MAX_HISTORY_MESSAGES:]
+            # Сохраняем самое первое сообщение (инструкция/запрос пользователя)
+            # и последние N-1 сообщений для контекста текущего шага
+            first_msg = self.history[0]
+            recent_msgs = self.history[-(MAX_HISTORY_MESSAGES - 1):]
+            self.history = [first_msg] + recent_msgs
 
     def _build_messages(self) -> list[dict]:
         """Собирает финальный список сообщений с system prompt в начале"""
         return [{"role": "system", "content": self.system_prompt}] + self.history
 
-    def safe_path(self, path: str) -> str:
-        """Обеспечивает работу внутри разрешенной директории"""
-        abs_path = os.path.abspath(os.path.join(PROJECT_ROOT, path))
-        if not abs_path.startswith(PROJECT_ROOT):
+    def safe_path(self, path: str) -> Path:
+        """Обеспечивает работу внутри разрешенной директории с использованием pathlib"""
+        root = Path(PROJECT_ROOT).resolve()
+        # Создаем абсолютный путь, объединяя корень и переданный путь
+        target = (root / path).resolve()
+
+        if not target.is_relative_to(root):
             raise PermissionError(
-                "Доступ запрещен: путь находится вне рабочей директории."
+                f"Доступ запрещен: путь {target} находится вне рабочей директории {root}."
             )
-        return abs_path
+        return target
 
     # --- Инструменты (TOOLBOX) ---
     def list_files(self, directory: str = ".") -> str:
         try:
             path = self.safe_path(directory)
-            files = os.listdir(path)
-            return f"Файлы в {directory}: {', '.join(files)}"
+            files = path.iterdir()  # Используем pathlib
+            file_list = [f.name for f in files]
+            return f"Файлы в {directory}: {', '.join(file_list)}"
         except Exception as e:
             return f"Ошибка при чтении списка файлов: {str(e)}"
 
     def read_file(self, filepath: str) -> str:
         try:
             path = self.safe_path(filepath)
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-                return f"Содержимое файла {filepath}:\n---\n{content}\n---"
+            content = path.read_text(encoding="utf-8")  # Упрощенное чтение через pathlib
+            return f"Содержимое файла {filepath}:\n---\n{content}\n---"
         except Exception as e:
             return f"Ошибка при чтении файла: {str(e)}"
 
@@ -97,30 +106,25 @@ class AIOSBridge:
         return None
 
     def execute_call(self, call_text: str) -> Optional[str]:
-        """Парсит строку вида CALL: func(key='value') и вызывает нужную функцию"""
+        """Парсит строку CALL и вызывает функцию из реестра self.tools"""
         func_match = re.search(r"CALL:\s*(\w+)\(", call_text)
         if not func_match:
-            return None  # None - не валидный вызов, игнорируем
-
-        func_name = func_match.group(1)
-        if func_name not in ALLOWED_FUNCTIONS:
-            # Не сообщаем модели об ошибке - просто игнорируем
             return None
 
-        # Извлекаем все аргументы вида key='value' или key="value"
-        args: dict[str, str] = dict(
-            re.findall(r"(\w+)=['\"]([^'\"]*)['\"]", call_text)
-        )
+        func_name = func_match.group(1)
+        if func_name not in self.tools:
+            return None  # Игнорируем неизвестные функции
 
-        if func_name == "list_files":
-            return self.list_files(args.get("directory", "."))
-        elif func_name == "read_file":
-            filepath = args.get("filepath")
-            if not filepath:
-                return "Ошибка: функция read_file требует аргумент filepath."
-            return self.read_file(filepath)
-        else:
-            return f"Ошибка: Функция {func_name} не существует."
+        # Извлекаем аргументы в словарь
+        args = dict(re.findall(r"(\w+)=['\"]([^'\"]*)['\"]", call_text))
+
+        try:
+            # Вызываем функцию из реестра, передавая ей распакованные аргументы
+            return self.tools[func_name](**args)
+        except TypeError as e:
+            return f"Ошибка в аргументах функции {func_name}: {e}"
+        except Exception as e:
+            return f"Критическая ошибка при выполнении {func_name}: {e}"
 
     def query_llm(self) -> str:
         """Отправка запроса в LM Studio и получение ответа"""
