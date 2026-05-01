@@ -13,7 +13,7 @@ MODEL_NAME = "google/gemma-4-31b"
 MAX_ITERATIONS = 50
 MAX_HISTORY_MESSAGES = 20
 TIMEOUT = 20 * 60
-ALLOWED_FUNCTIONS = {"list_files", "read_file"}
+
 
 
 # =================================================
