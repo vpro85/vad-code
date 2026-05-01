@@ -1,5 +1,5 @@
 """Главный модуль"""
-import os
+import ast
 import re
 from pathlib import Path
 from typing import Optional
@@ -133,31 +133,39 @@ class AIOSBridge:
         return None
 
     def execute_call(self, call_text: str) -> Optional[str]:
-        """Парсит строку CALL и вызывает функцию из реестра self.tools"""
-        func_match = re.search(r"CALL:\s*(\w+)\(", call_text)
-        if not func_match:
-            return None
-
-        func_name = func_match.group(1)
-        if func_name not in self.tools:
-            return None  # Игнорируем неизвестные функции
-
-        # Более надежный поиск всех пар ключ='значение'
-        # Ищет: имя_аргумента = 'текст в одинарных кавычках' или "текст в двойных"
-        args = {}
-        matches = re.findall(r"(\w+)\s*=\s*(['\"]{3}.*?['\"]{3}|'[^']*'|\"[^\"]*\")", call_text, re.DOTALL)
-        for key, value in matches:
-            # Убираем внешние кавычки (одинарные, двойные или тройные)
-            content = value[0]
-            if content == "'" or content == '"':
-                value = value[1:-1]
-            elif content == "'" * 3 or content == '"' * 3:
-                value = value[3:-3]
-            args[key] = value
+        """Парсит строку CALL с использованием AST и вызывает функцию из реестра self.tools"""
+        # Очищаем строку от префикса CALL:
+        code = call_text.replace("CALL:", "").strip()
 
         try:
-            # Вызываем функцию из реестра, передавая ей распакованные аргументы
+            # Парсим строку как выражение Python
+            tree = ast.parse(code, mode='eval')
+            call_node = tree.body
+
+            if not isinstance(call_node, ast.Call):
+                return None
+
+            # Извлекаем имя функции
+            if not isinstance(call_node.func, ast.Name):
+                return None
+
+            func_name = call_node.func.id
+            if func_name not in self.tools:
+                return f"Ошибка: Функция {func_name} не поддерживается."
+
+            # Извлекаем именованные аргументы (keywords)
+            args = {}
+            for kw in call_node.keywords:
+                # ast.literal_eval безопасно вычисляет значение литерала (строка, число, список и т.д.)
+                args[kw.arg] = ast.literal_eval(kw.value)
+
+            # Вызываем функцию из реестра
             return self.tools[func_name](**args)
+
+        except SyntaxError:
+            return "Ошибка: Некорректный синтаксис вызова функции."
+        except ValueError as e:
+            return f"Ошибка в значениях аргументов: {e}"
         except TypeError as e:
             return f"Ошибка в аргументах функции {func_name}: {e}"
         except Exception as e:
