@@ -7,7 +7,7 @@ from typing import Optional
 import httpx
 
 # =================== Настройки ===================
-PROJECT_ROOT = os.getcwd()
+PROJECT_ROOT = str(Path(__file__).parent.parent.resolve())
 LM_STUDIO_URL = "http://127.0.0.1:1234/v1/chat/completions"
 MODEL_NAME = "google/gemma-4-31b"
 MAX_ITERATIONS = 50
@@ -27,14 +27,16 @@ class AIOSBridge:
         self.system_prompt = (
             "Ты - AI-инженер, имеющий доступ к файловой системе в директории: "
             f"{PROJECT_ROOT}. "
-            "Твоя задача - помогать пользователю анализировать код.\n\n"
+            "Твоя задача - помогать пользователю анализировать и изменять код.\n\n"
             "ДОСТУПНЫЕ ИНСТРУМЕНТЫ:\n"
             "1. list_files(directory) - возвращает список файлов в папке.\n"
-            "2. read_file(filepath) - читает содержимое файла.\n\n"
+            "2. read_file(filepath) - читает содержимое файла.\n"
+            "3. write_file(filepath, content) - записывает текст в файл (перезаписывает).\n\n"
             "ПРОТОКОЛ ВЗАИМОДЕЙСТВИЯ:\n"
             "- Если тебе нужно использовать инструмент, используй один из следующих форматов:\n"
             "  CALL: list_files(directory='путь/к/папке')\n"
             "  CALL: read_file(filepath='путь/к/файлу')\n"
+            "  CALL: write_file(filepath='путь', content='текст')\n"
             "- После этого ты получишь ответ в формате: OBSERVATION: [результат]\n"
             "- Когда у тебя будет достаточно информации для ответа "
             "пользователю, просто напиши финальный ответ.\n"
@@ -51,6 +53,7 @@ class AIOSBridge:
         self.tools = {
             "list_files": self.list_files,
             "read_file": self.read_file,
+            "write_file": self.write_file,
         }
 
     def _trim_history(self) -> None:
@@ -96,6 +99,14 @@ class AIOSBridge:
         except Exception as e:
             return f"Ошибка при чтении файла: {str(e)}"
 
+    def write_file(self, filepath: str, content: str) -> str:
+        try:
+            path = self.safe_path(filepath)
+            path.write_text(content, encoding="utf-8")
+            return f"Файл {filepath} успешно записан."
+        except Exception as e:
+            return f"Ошибка при записи файла {filepath}: {str(e)}"
+
     def _find_call_line(self, ai_response: str) -> str | None:
         """Возвращает строку с вызовом только если она начинается с CALL:"""
         for line in ai_response.splitlines():
@@ -115,8 +126,12 @@ class AIOSBridge:
         if func_name not in self.tools:
             return None  # Игнорируем неизвестные функции
 
-        # Извлекаем аргументы в словарь
-        args = dict(re.findall(r"(\w+)=['\"]([^'\"]*)['\"]", call_text))
+        # Более надежный поиск всех пар ключ='значение'
+        # Ищет: имя_аргумента = 'текст в одинарных кавычках' или "текст в двойных"
+        args = {}
+        matches = re.findall(r"(\w+)\s*=\s*(['\"])(.*?)\2", call_text)
+        for key, quote, value in matches:
+            args[key] = value
 
         try:
             # Вызываем функцию из реестра, передавая ей распакованные аргументы
