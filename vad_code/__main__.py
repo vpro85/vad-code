@@ -44,7 +44,7 @@ class AIOSBridge:
             "пользователю, просто напиши финальный ответ.\n"
             "- Никогда не выдумывай содержимое файлов, используй только read_file."
             "ПРАВИЛА:\n"
-            "- Вызов инструмента пишется СТРОГО на отдельной строке, начиная с первого символа:\n"
+            "- Каждый вызов инструмента должен начинаться с префикса CALL: и заканчиваться закрывающей скобкой ).\n"
             "  CALL: list_files(directory='.')\n"
             "- Никакого другого текста на этой строке быть не должно.\n"
             "- Не используй CALL: в примерах или объяснениях.\n"
@@ -109,6 +109,7 @@ class AIOSBridge:
             if old_text not in content:
                 return f"Ошибка: Точный текст для замены не найден в файле {filepath}."
 
+            new_text = new_text.replace('\\n', '\n')  # <--- Добавить это
             new_content = content.replace(old_text, new_text)
             path.write_text(new_content, encoding="utf-8")
             return f"Файл {filepath} успешно обновлен (текст заменен)."
@@ -118,19 +119,24 @@ class AIOSBridge:
     def write_file(self, filepath: str, content: str) -> str:
         try:
             path = self.safe_path(filepath)
+            content = content.replace('\\n', '\n')
             path.write_text(content, encoding="utf-8")
             return f"Файл {filepath} успешно записан."
         except Exception as e:
             return f"Ошибка при записи файла {filepath}: {str(e)}"
 
     def _find_call_line(self, ai_response: str) -> str | None:
-        """Возвращает строку с вызовом только если она начинается с CALL:"""
-        for line in ai_response.splitlines():
-            stripped = line.strip()
-            # Строка должна НАЧИНАТЬСЯ с CALL:, а не содержать его где-то внутри
-            if stripped.startswith("CALL:"):
-                return stripped
-        return None
+        """Возвращает полный текст вызова, даже если он занимает несколько строк"""
+        if "CALL:" not in ai_response:
+            return None
+
+        start_idx = ai_response.find("CALL:")
+        end_idx = ai_response.rfind(")")
+
+        if end_idx == -1 or end_idx < start_idx:
+            return None
+
+        return ai_response[start_idx: end_idx + 1]
 
     def execute_call(self, call_text: str) -> Optional[str]:
         """Парсит строку CALL с использованием AST и вызывает функцию из реестра self.tools"""
