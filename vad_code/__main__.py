@@ -1,6 +1,5 @@
 """Главный модуль"""
 import ast
-import re
 from pathlib import Path
 from typing import Optional
 
