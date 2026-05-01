@@ -2,4 +2,16 @@
 name = "vad-code"
 version = "0.1.0"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.1",
+]
+
+[dependency-groups]
+dev = [
+    "flake8>=7.3.0",
+    "mypy>=1.20.2",
+    "pylint>=4.0.5",
+    "pytest>=9.0.3",
+    "pytest-coverage>=0.0",
+    "pytest-mock>=3.15.1",
+]
