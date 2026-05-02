@@ -5,6 +5,7 @@ from typing import Optional
 
 import httpx
 
+from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 from .config import settings
 
@@ -13,6 +14,7 @@ class AIOSBridge:
     """Класс, реализующий взаимодействие LLM-модели и ОС"""
 
     def __init__(self) -> None:
+        self.llm_client = LLMClient()
         self.file_tools = FileTools()
         self.tools = {}
 
@@ -105,26 +107,6 @@ class AIOSBridge:
         except Exception as e:
             return f"Критическая ошибка при выполнении '{func_name}': {e}"
 
-    def query_llm(self) -> str:
-        """Отправка запроса в LM Studio и получение ответа"""
-        payload = {
-            "model": settings.model_name,
-            "messages": self._build_messages(),
-            "temperature": 0.1,
-        }
-
-        try:
-            response = httpx.post(settings.lm_studio_url, json=payload, timeout=settings.timeout)
-            response.raise_for_status()
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
-        except httpx.HTTPStatusError as e:
-            return f"HTTP-ошибка от LM Studio: {e.response.status_code} - {e.response.text}"
-        except httpx.RequestError as e:
-            return f"Ошибка соединения с LM Studio: {e}"
-        except (KeyError, IndexError) as e:
-            return f"Ошибка: неожиданный формат ответа от LM Studio"
-
     def run(self) -> None:
         print("🚀 AI-OS Bridge (Local Mode) запущен.")
         print(f"Подключение к {settings.lm_studio_url}")
@@ -146,7 +128,7 @@ class AIOSBridge:
 
             for i in range(settings.max_iterations):
                 self._trim_history()
-                ai_response = self.query_llm()
+                ai_response = self.llm_client.complete(self._build_messages())
 
                 self.history.append({"role": "assistant", "content": ai_response})
 
