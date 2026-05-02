@@ -18,24 +18,17 @@ class AIOSBridge:
             "ДОСТУПНЫЕ ИНСТРУМЕНТЫ:\n"
             "1. list_files(directory) - возвращает список файлов в папке.\n"
             "2. read_file(filepath) - читает содержимое файла.\n"
-            "3. write_file(filepath, content) - записывает текст в файл (перезаписывает).\n\n"
+            "3. write_file(filepath, content) - записывает текст в файл (перезаписывает).\n"
+            "4. replace_in_file(filepath, old_text, new_text) - заменяет старый текст на новый в файле.\n\n"
             "ПРОТОКОЛ ВЗАИМОДЕЙСТВИЯ:\n"
-            "4. replace_in_file(filepath, old_text, new_text) - заменяет старый текст на новый в файле (экономит токены).`"
-            "- Пример вызова: `CALL: replace_in_file(filepath='путь', old_text='старый код', new_text='новый код')`"
-            "- Если тебе нужно использовать инструмент, используй один из следующих форматов:\n"
-            "  CALL: list_files(directory='путь/к/папке')\n"
-            "  CALL: read_file(filepath='путь/к/файлу')\n"
-            "  CALL: write_file(filepath='путь', content='текст')\n"
+            "- Ты можешь использовать как именованные (keyword), так и позиционные аргументы для краткости.\n"
+            "- Пример вызова: `CALL: list_files('.')` или `CALL: read_file(filepath='path/to/file')`\n"
+            "- Если тебе нужно использовать инструмент, используй формат:\n"
+            "  CALL: <function_name>(<args>)\n"
             "- После этого ты получишь ответ в формате: OBSERVATION: [результат]\n"
             "- Когда у тебя будет достаточно информации для ответа "
             "пользователю, просто напиши финальный ответ.\n"
             "- Никогда не выдумывай содержимое файлов, используй только read_file."
-            "ПРАВИЛА:\n"
-            "- Каждый вызов инструмента должен начинаться с префикса CALL: и заканчиваться закрывающей скобкой ).\n"
-            "  CALL: list_files(directory='.')\n"
-            "- Никакого другого текста на этой строке быть не должно.\n"
-            "- Не используй CALL: в примерах или объяснениях.\n"
-            "- Если инструмент не нужен — просто пиши финальный ответ без CALL.\n"
         )
         self.history: list[dict] = []
         # Реестр доступных функций: имя_в_промпте -> метод_класса
@@ -43,14 +36,12 @@ class AIOSBridge:
             "list_files": self.list_files,
             "read_file": self.read_file,
             "write_file": self.write_file,
-            "replace_in_file": self.replace_in_file,  # Добавить это
+            "replace_in_file": self.replace_in_file,
         }
 
     def _trim_history(self) -> None:
         """Обрезает историю, сохраняя первое сообщение пользователя (цель)"""
         if len(self.history) > MAX_HISTORY_MESSAGES:
-            # Сохраняем самое первое сообщение (инструкция/запрос пользователя)
-            # и последние N-1 сообщений для контекста текущего шага
             first_msg = self.history[0]
             recent_msgs = self.history[-(MAX_HISTORY_MESSAGES - 1):]
             self.history = [first_msg] + recent_msgs
@@ -62,7 +53,6 @@ class AIOSBridge:
     def safe_path(self, path: str) -> Path:
         """Обеспечивает работу внутри разрешенной директории с использованием pathlib"""
         root = Path(PROJECT_ROOT).resolve()
-        # Создаем абсолютный путь, объединяя корень и переданный путь
         target = (root / path).resolve()
 
         if not target.is_relative_to(root):
@@ -75,16 +65,16 @@ class AIOSBridge:
     def list_files(self, directory: str = ".") -> str:
         try:
             path = self.safe_path(directory)
-            files = path.iterdir()  # Используем pathlib
+            files = path.iterdir()
             file_list = [f.name for f in files]
-            return f"Файлы в {directory}: {', '.join(file_list)}"
+            return f"Файлы в {directory}: {", ".join(file_list)}"
         except Exception as e:
             return f"Ошибка при чтении списка файлов: {str(e)}"
 
     def read_file(self, filepath: str) -> str:
         try:
             path = self.safe_path(filepath)
-            content = path.read_text(encoding="utf-8")  # Упрощенное чтение через pathlib
+            content = path.read_text(encoding="utf-8")
             return f"Содержимое файла {filepath}:\n---\n{content}\n---"
         except Exception as e:
             return f"Ошибка при чтении файла: {str(e)}"
@@ -96,7 +86,7 @@ class AIOSBridge:
             if old_text not in content:
                 return f"Ошибка: Точный текст для замены не найден в файле {filepath}."
 
-            new_text = new_text.replace('\\n', '\n')  # <--- Добавить это
+            new_text = new_text.replace("\\\\n", "\n")
             new_content = content.replace(old_text, new_text)
             path.write_text(new_content, encoding="utf-8")
             return f"Файл {filepath} успешно обновлен (текст заменен)."
@@ -106,7 +96,7 @@ class AIOSBridge:
     def write_file(self, filepath: str, content: str) -> str:
         try:
             path = self.safe_path(filepath)
-            content = content.replace('\\n', '\n')
+            content = content.replace("\\\\n", "\n")
             path.write_text(content, encoding="utf-8")
             return f"Файл {filepath} успешно записан."
         except Exception as e:
@@ -127,18 +117,15 @@ class AIOSBridge:
 
     def execute_call(self, call_text: str) -> Optional[str]:
         """Парсит строку CALL с использованием AST и вызывает функцию из реестра self.tools"""
-        # Очищаем строку от префикса CALL:
         code = call_text.replace("CALL:", "").strip()
 
         try:
-            # Парсим строку как выражение Python
-            tree = ast.parse(code, mode='eval')
+            tree = ast.parse(code, mode="eval")
             call_node = tree.body
 
             if not isinstance(call_node, ast.Call):
                 return None
 
-            # Извлекаем имя функции
             if not isinstance(call_node.func, ast.Name):
                 return None
 
@@ -146,14 +133,15 @@ class AIOSBridge:
             if func_name not in self.tools:
                 return f"Ошибка: Функция {func_name} не поддерживается."
 
-            # Извлекаем именованные аргументы (keywords)
-            args = {}
-            for kw in call_node.keywords:
-                # ast.literal_eval безопасно вычисляет значение литерала (строка, число, список и т.д.)
-                args[kw.arg] = ast.literal_eval(kw.value)
+            # Извлекаем позиционные аргументы
+            args = [ast.literal_eval(arg) for arg in call_node.args]
 
-            # Вызываем функцию из реестра
-            return self.tools[func_name](**args)
+            # Извлекаем именованные аргументы (keywords)
+            kwargs = {}
+            for kw in call_node.keywords:
+                kwargs[kw.arg] = ast.literal_eval(kw.value)
+
+            return self.tools[func_name](*args, **kwargs)
 
         except SyntaxError:
             return "Ошибка: Некорректный синтаксис вызова функции."
@@ -169,7 +157,7 @@ class AIOSBridge:
         payload = {
             "model": MODEL_NAME,
             "messages": self._build_messages(),
-            "temperature": 0.1,  # Низкая температура для строгого следования протоколу CALL
+            "temperature": 0.1,
         }
 
         try:
@@ -201,14 +189,12 @@ class AIOSBridge:
             if user_input.lower() in ["exit", "quit"]:
                 break
 
-            # Добавляем сообщение пользователя в историю
             self.history.append({"role": "user", "content": user_input})
 
             for i in range(MAX_ITERATIONS):
                 self._trim_history()
                 ai_response = self.query_llm()
 
-                # Сохраним ответ ИИ в историю, чтобы он помнил свои рассуждения
                 self.history.append({"role": "assistant", "content": ai_response})
 
                 call_line = self._find_call_line(ai_response)
@@ -219,11 +205,9 @@ class AIOSBridge:
                     observation = self.execute_call(call_line)
                     print(f"📝 Результат: {observation[:120]}...")
                     if observation is None:
-                        # Ложное срабатывание — считаем это финальным ответом
                         print(f"\n🤖 AI: {ai_response}\n")
                         break
 
-                    # Добавляем результат выполнения функции в историю как сообщение от пользователя/системы
                     self.history.append({"role": "user", "content": f"OBSERVATION: {observation}"})
                 else:
                     print(f"\n🤖 AI: {ai_response}\n")
@@ -232,9 +216,9 @@ class AIOSBridge:
                 print("\n⚠️ Достигнут лимит итераций.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         bridge = AIOSBridge()
         bridge.run()
     except KeyboardInterrupt:
-        print('\n\n👋 Выход из системы...')
+        print("\n\n👋 Выход из системы...")
