@@ -2,6 +2,8 @@
 import ast
 from pathlib import Path
 from typing import Optional
+
+from vad_code.tools.file_tools import FileTools
 from .config import PROJECT_ROOT, LM_STUDIO_URL, MODEL_NAME, MAX_ITERATIONS, MAX_HISTORY_MESSAGES, TIMEOUT
 import httpx
 
@@ -31,12 +33,13 @@ class AIOSBridge:
             "- Никогда не выдумывай содержимое файлов, используй только read_file."
         )
         self.history: list[dict] = []
+        self.file_tools = FileTools()
         # Реестр доступных функций: имя_в_промпте -> метод_класса
         self.tools = {
-            "list_files": self.list_files,
-            "read_file": self.read_file,
-            "write_file": self.write_file,
-            "replace_in_file": self.replace_in_file,
+            "list_files": self.file_tools.list_files,
+            "read_file": self.file_tools.read_file,
+            "write_file": self.file_tools.write_file,
+            "replace_in_file": self.file_tools.replace_in_file,
         }
 
     def _trim_history(self) -> None:
@@ -49,58 +52,6 @@ class AIOSBridge:
     def _build_messages(self) -> list[dict]:
         """Собирает финальный список сообщений с system prompt в начале"""
         return [{"role": "system", "content": self.system_prompt}] + self.history
-
-    def safe_path(self, path: str) -> Path:
-        """Обеспечивает работу внутри разрешенной директории с использованием pathlib"""
-        root = Path(PROJECT_ROOT).resolve()
-        target = (root / path).resolve()
-
-        if not target.is_relative_to(root):
-            raise PermissionError(
-                f"Доступ запрещен: путь {target} находится вне рабочей директории {root}."
-            )
-        return target
-
-    # --- Инструменты (TOOLBOX) ---
-    def list_files(self, directory: str = ".") -> str:
-        try:
-            path = self.safe_path(directory)
-            files = path.iterdir()
-            file_list = [f.name for f in files]
-            return f"Файлы в {directory}: {", ".join(file_list)}"
-        except Exception as e:
-            return f"Ошибка при чтении списка файлов: {str(e)}"
-
-    def read_file(self, filepath: str) -> str:
-        try:
-            path = self.safe_path(filepath)
-            content = path.read_text(encoding="utf-8")
-            return f"Содержимое файла {filepath}:\n---\n{content}\n---"
-        except Exception as e:
-            return f"Ошибка при чтении файла: {str(e)}"
-
-    def replace_in_file(self, filepath: str, old_text: str, new_text: str) -> str:
-        try:
-            path = self.safe_path(filepath)
-            content = path.read_text(encoding="utf-8")
-            if old_text not in content:
-                return f"Ошибка: Точный текст для замены не найден в файле {filepath}."
-
-            new_text = new_text.replace("\\\\n", "\n")
-            new_content = content.replace(old_text, new_text)
-            path.write_text(new_content, encoding="utf-8")
-            return f"Файл {filepath} успешно обновлен (текст заменен)."
-        except Exception as e:
-            return f"Ошибка при обновлении файла {filepath}: {str(e)}"
-
-    def write_file(self, filepath: str, content: str) -> str:
-        try:
-            path = self.safe_path(filepath)
-            content = content.replace("\\\\n", "\n")
-            path.write_text(content, encoding="utf-8")
-            return f"Файл {filepath} успешно записан."
-        except Exception as e:
-            return f"Ошибка при записи файла {filepath}: {str(e)}"
 
     def _find_call_line(self, ai_response: str) -> str | None:
         """Возвращает полный текст вызова, даже если он занимает несколько строк"""
