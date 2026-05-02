@@ -6,7 +6,7 @@ from typing import Optional
 import httpx
 
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
-from .config import PROJECT_ROOT, LM_STUDIO_URL, MODEL_NAME, MAX_ITERATIONS, MAX_HISTORY_MESSAGES, TIMEOUT
+from .config import settings
 
 
 class AIOSBridge:
@@ -26,7 +26,7 @@ class AIOSBridge:
         # 2. Формируем системный промпт (теперь он зависит от реестра)
         self.system_prompt = (
             "Ты - AI-инженер, имеющий доступ к файловой системе в директории: "
-            f"{PROJECT_ROOT}. "
+            f"{settings.project_root}. "
             "Твоя задача - помогать пользователю анализировать и изменять код.\n\n"
             "ДОСТУПНЫЕ ИНСТРУМЕНТЫ:\n"
             f"{tools_text}\n\n"
@@ -52,9 +52,9 @@ class AIOSBridge:
 
     def _trim_history(self) -> None:
         """Обрезает историю, сохраняя первое сообщение пользователя (цель)"""
-        if len(self.history) > MAX_HISTORY_MESSAGES:
+        if len(self.history) > settings.max_history_messages:
             first_msg = self.history[0]
-            recent_msgs = self.history[-(MAX_HISTORY_MESSAGES - 1):]
+            recent_msgs = self.history[-(settings.MAX_HISTORY_MESSAGES - 1):]
             self.history = [first_msg] + recent_msgs
 
     def _build_messages(self) -> list[dict]:
@@ -108,13 +108,13 @@ class AIOSBridge:
     def query_llm(self) -> str:
         """Отправка запроса в LM Studio и получение ответа"""
         payload = {
-            "model": MODEL_NAME,
+            "model": settings.model_name,
             "messages": self._build_messages(),
             "temperature": 0.1,
         }
 
         try:
-            response = httpx.post(LM_STUDIO_URL, json=payload, timeout=TIMEOUT)
+            response = httpx.post(settings.lm_studio_url, json=payload, timeout=settings.timeout)
             response.raise_for_status()
             result = response.json()
             return result["choices"][0]["message"]["content"]
@@ -127,8 +127,8 @@ class AIOSBridge:
 
     def run(self) -> None:
         print("🚀 AI-OS Bridge (Local Mode) запущен.")
-        print(f"Подключение к {LM_STUDIO_URL}")
-        print(f"Рабочая директория: {PROJECT_ROOT}\n")
+        print(f"Подключение к {settings.lm_studio_url}")
+        print(f"Рабочая директория: {settings.project_root}\n")
 
         while True:
             try:
@@ -144,7 +144,7 @@ class AIOSBridge:
 
             self.history.append({"role": "user", "content": user_input})
 
-            for i in range(MAX_ITERATIONS):
+            for i in range(settings.max_iterations):
                 self._trim_history()
                 ai_response = self.query_llm()
 
@@ -153,7 +153,7 @@ class AIOSBridge:
                 call_line = self._find_call_line(ai_response)
 
                 if call_line:
-                    print(f"🤖 AI вызывает инструмент... ({i + 1}/{MAX_ITERATIONS})")
+                    print(f"🤖 AI вызывает инструмент... ({i + 1}/{settings.max_iterations})")
                     print(f"   ↳ {call_line.strip()}")
                     observation = self.execute_call(call_line)
                     print(f"📝 Результат: {observation[:120]}...")

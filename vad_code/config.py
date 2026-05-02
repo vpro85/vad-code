@@ -1,16 +1,18 @@
-import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
 
 load_dotenv()
 
-# =================== Настройки ===================
-PROJECT_ROOT = str(Path(__file__).parent.parent.resolve())
-LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://127.0.0.1:1234/v1/chat/completions")
-MODEL_NAME = os.getenv("MODEL_NAME", "google/gemma-4-26b-a4b")
-MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", 50))
-MAX_HISTORY_MESSAGES = int(os.getenv("MAX_HISTORY_MESSAGES", 20))
-TIMEOUT = int(os.getenv("TIMEOUT", 1200))
 
-# =================================================
+class Settings(BaseSettings):
+    project_root = str(Path(__file__).parent.parent.resolve())
+    lm_studio_url: str = "http://127.0.0.1:1234/v1/chat/completions"
+    model_name: str = "google/gemma-4-26b-a4b"
+    max_iterations: int = 50
+    max_history_messages: int = 20
+    timeout: int = 1200
+
+
+settings = Settings()
