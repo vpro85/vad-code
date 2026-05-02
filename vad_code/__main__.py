@@ -71,21 +71,31 @@ class AIOSBridge:
         return None
 
     def execute_call(self, call_text: str) -> Optional[str]:
-        """Парсит JSON-строку и вызывает функцию из реестра self.tools"""
+        """Парсит JSON-строку, валидирует аргументы через Pydantic и вызывает функцию"""
+        func_name = None
         try:
-            # Превращаем строку в Python-словарь
+            # 1. Парсим JSON
             call_data = json.loads(call_text)
-
             func_name = call_data.get("tool")
             args = call_data.get("arguments", {})
 
             if not func_name:
                 return "Ошибка: В JSON не указано поле 'tool'."
 
+            # 2. Валидация аргументов через Pydantic (если схема есть в реестре)
+            if func_name in TOOL_REGISTRY:
+                schema = TOOL_REGISTRY[func_name].get("schema")
+                if schema:
+                    try:
+                        # Проверяем аргументы на соответствие схеме
+                        schema.model_validate(args)
+                    except Exception as e:
+                        return f"Ошибка валидации аргументов: {e}"
+
+            # 3. Вызов функции
             if func_name not in self.tools:
                 return f"Ошибка: Функция '{func_name}' не поддерживается."
 
-            # Вызываем функцию, распаковывая словарь аргументов как именованные параметры
             return self.tools[func_name](**args)
 
         except json.JSONDecodeError as e:
