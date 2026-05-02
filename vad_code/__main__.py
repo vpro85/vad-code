@@ -156,12 +156,9 @@ class AIOSBridge:
                     print(f"🤖 AI вызывает инструмент... ({i + 1}/{settings.max_iterations})")
                     print(f"   ↳ {call_line.strip()}")
                     observation = self.execute_call(call_line)
-                    print(f"📝 Результат: {observation[:120]}...")
-                    if observation is None:
-                        print(f"\n🤖 AI: {ai_response}\n")
-                        break
-
-                    self.history.append({"role": "user", "content": f"OBSERVATION: {observation}"})
+                    obs_text = observation if observation is not None else "Success"
+                    print(f"📝 Результат: {obs_text[:120]}...")
+                    self.history.append({"role": "user", "content": f"OBSERVATION: {obs_text}"})
                 else:
                     print(f"\n🤖 AI: {ai_response}\n")
                     break
