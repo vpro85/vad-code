@@ -27,16 +27,16 @@ class ListFilesSchema(BaseModel):
 
 
 class ReadFileSchema(BaseModel):
-    filepath: str = Field(..., description="Путь к файлу")
+    path: str = Field(..., description="Путь к файлу")
 
 
 class WriteFileSchema(BaseModel):
-    filepath: str = Field(..., description="Путь к файлу")
+    path: str = Field(..., description="Путь к файлу")
     content: str = Field(..., description="Текст для записи в файл")
 
 
 class ReplaceInFileSchema(BaseModel):
-    filepath: str = Field(..., description="Путь к файлу")
+    path: str = Field(..., description="Путь к файлу")
     old_text: str = Field(..., description="Текст, который нужно заменить")
     new_text: str = Field(..., description="Новый текст")
 
@@ -54,28 +54,28 @@ class FileTools:
             return f"Ошибка при чтении списка файлов: {str(e)}"
 
     @register_tool("читает содержимое файла.", schema=ReadFileSchema)
-    def read_file(self, filepath: str) -> str:
+    def read_file(self, path: str) -> str:
         try:
-            content = self.fs.read_text(filepath)
-            return f"Содержимое файла {filepath}:\n---\n{content}\n---"
+            content = self.fs.read_text(path)
+            return f"Содержимое файла {path}:\n---\n{content}\n---"
         except Exception as e:
             return f"Ошибка при чтении файла: {str(e)}"
 
     @register_tool("записывает текст в файл (перезаписывает).", schema=WriteFileSchema)
-    def write_file(self, filepath: str, content: str) -> str:
+    def write_file(self, path: str, content: str) -> str:
         try:
             # Обработка экранированных переносов строк (как было в оригинале)
             content = content.replace("\\\\n", "\n")
-            self.fs.write_text(filepath, content)
-            return f"Файл {filepath} успешно записан."
+            self.fs.write_text(path, content)
+            return f"Файл {path} успешно записан."
         except Exception as e:
-            return f"Ошибка при записи файла {filepath}: {str(e)}"
+            return f"Ошибка при записи файла {path}: {str(e)}"
 
     @register_tool("заменяет старый текст на новый в файле.", schema=ReplaceInFileSchema)
-    def replace_in_file(self, filepath: str, old_text: str, new_text: str) -> str:
+    def replace_in_file(self, path: str, old_text: str, new_text: str) -> str:
         try:
             new_text = new_text.replace("\\\\n", "\n")
-            self.fs.replace_text(filepath, old_text, new_text)
-            return f"Файл {filepath} успешно обновлен."
+            self.fs.replace_text(path, old_text, new_text)
+            return f"Файл {path} успешно обновлен."
         except Exception as e:
-            return f"Ошибка при обновлении файла {filepath}: {str(e)}"
+            return f"Ошибка при обновлении файла {path}: {str(e)}"
