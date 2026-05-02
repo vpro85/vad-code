@@ -54,7 +54,7 @@ class AIOSBridge:
         """Обрезает историю, сохраняя первое сообщение пользователя (цель)"""
         if len(self.history) > settings.max_history_messages:
             first_msg = self.history[0]
-            recent_msgs = self.history[-(settings.MAX_HISTORY_MESSAGES - 1):]
+            recent_msgs = self.history[-(settings.max_history_messages - 1):]
             self.history = [first_msg] + recent_msgs
 
     def _build_messages(self) -> list[dict]:
