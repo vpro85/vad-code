@@ -5,7 +5,7 @@ from typing import Optional
 
 import httpx
 
-from vad_code.tools.file_tools import FileTools
+from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 from .config import PROJECT_ROOT, LM_STUDIO_URL, MODEL_NAME, MAX_ITERATIONS, MAX_HISTORY_MESSAGES, TIMEOUT
 
 
@@ -13,16 +13,23 @@ class AIOSBridge:
     """Класс, реализующий взаимодействие LLM-модели и ОС"""
 
     def __init__(self) -> None:
-        # Системный промпт передается как первое сообщение в истории
+        self.file_tools = FileTools()
+        self.tools = {}
+
+        # 1. Динамически формируем список описаний для системного промпта
+        tools_descriptions = []
+        for name, info in TOOL_REGISTRY.items():
+            tools_descriptions.append(f"{name}(...) - {info['description']}")
+
+        tools_text = "\n".join([f"{i + 1}. {desc}" for i, desc in enumerate(tools_descriptions)])
+
+        # 2. Формируем системный промпт (теперь он зависит от реестра)
         self.system_prompt = (
             "Ты - AI-инженер, имеющий доступ к файловой системе в директории: "
             f"{PROJECT_ROOT}. "
             "Твоя задача - помогать пользователю анализировать и изменять код.\n\n"
             "ДОСТУПНЫЕ ИНСТРУМЕНТЫ:\n"
-            "1. list_files(directory) - возвращает список файлов в папке.\n"
-            "2. read_file(filepath) - читает содержимое файла.\n"
-            "3. write_file(filepath, content) - записывает текст в файл (перезаписывает).\n"
-            "4. replace_in_file(filepath, old_text, new_text) - заменяет старый текст на новый в файле.\n\n"
+            f"{tools_text}\n\n"
             "ПРОТОКОЛ ВЗАИМОДЕЙСТВИЯ:\n"
             "- Для вызова инструментов ОБЯЗАТЕЛЬНО используй блок кода JSON:\n"
             "```json\n"
@@ -35,15 +42,13 @@ class AIOSBridge:
             "- Когда у тебя будет достаточно информации для ответа пользователю, просто напиши финальный ответ.\n"
             "- Никогда не выдумывай содержимое файлов, используй только read_file."
         )
+        # 3. Автоматически привязываем методы к экземпляру self.tools
+        for name in TOOL_REGISTRY:
+            if hasattr(self.file_tools, name):
+                method = getattr(self.file_tools, name)
+                self.tools[name] = method
+
         self.history: list[dict] = []
-        self.file_tools = FileTools()
-        # Реестр доступных функций: имя_в_промпте -> метод_класса
-        self.tools = {
-            "list_files": self.file_tools.list_files,
-            "read_file": self.file_tools.read_file,
-            "write_file": self.file_tools.write_file,
-            "replace_in_file": self.file_tools.replace_in_file,
-        }
 
     def _trim_history(self) -> None:
         """Обрезает историю, сохраняя первое сообщение пользователя (цель)"""
