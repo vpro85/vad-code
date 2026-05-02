@@ -23,7 +23,7 @@ def register_tool(description: str, schema: Optional[Type[BaseModel]] = None):
 # --- Схемы валидации аргументов ---
 
 class ListFilesSchema(BaseModel):
-    directory: str = Field(".", description="Путь к директории")
+    path: str = Field(".", description="Путь к директории")
 
 
 class ReadFileSchema(BaseModel):
@@ -46,10 +46,10 @@ class FileTools:
         self.fs = FileSystemService()
 
     @register_tool("возвращает список файлов в папке.", schema=ListFilesSchema)
-    def list_files(self, directory: str = ".") -> str:
+    def list_files(self, path: str = ".") -> str:
         try:
-            files = self.fs.list_dir(directory)
-            return f"Файлы в {directory}: {', '.join(files)}"
+            files = self.fs.list_dir(path)
+            return f"Файлы в {path}: {', '.join(files)}"
         except Exception as e:
             return f"Ошибка при чтении списка файлов: {str(e)}"
 
