@@ -1,10 +1,7 @@
 """Главный модуль"""
-import json
 import re
-from typing import Optional
 
-import httpx
-
+from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 from .config import settings
@@ -16,7 +13,7 @@ class AIOSBridge:
     def __init__(self) -> None:
         self.llm_client = LLMClient()
         self.file_tools = FileTools()
-        self.tools = {}
+        self.tools_executor = ToolExecutor()
 
         # 1. Динамически формируем список описаний для системного промпта
         tools_descriptions = []
@@ -44,11 +41,6 @@ class AIOSBridge:
             "- Когда у тебя будет достаточно информации для ответа пользователю, просто напиши финальный ответ.\n"
             "- Никогда не выдумывай содержимое файлов, используй только read_file."
         )
-        # 3. Автоматически привязываем методы к экземпляру self.tools
-        for name in TOOL_REGISTRY:
-            if hasattr(self.file_tools, name):
-                method = getattr(self.file_tools, name)
-                self.tools[name] = method
 
         self.history: list[dict] = []
 
@@ -71,41 +63,6 @@ class AIOSBridge:
         if match:
             return match.group(1)
         return None
-
-    def execute_call(self, call_text: str) -> Optional[str]:
-        """Парсит JSON-строку, валидирует аргументы через Pydantic и вызывает функцию"""
-        func_name = None
-        try:
-            # 1. Парсим JSON
-            call_data = json.loads(call_text)
-            func_name = call_data.get("tool")
-            args = call_data.get("arguments", {})
-
-            if not func_name:
-                return "Ошибка: В JSON не указано поле 'tool'."
-
-            # 2. Валидация аргументов через Pydantic (если схема есть в реестре)
-            if func_name in TOOL_REGISTRY:
-                schema = TOOL_REGISTRY[func_name].get("schema")
-                if schema:
-                    try:
-                        # Проверяем аргументы на соответствие схеме
-                        schema.model_validate(args)
-                    except Exception as e:
-                        return f"Ошибка валидации аргументов: {e}"
-
-            # 3. Вызов функции
-            if func_name not in self.tools:
-                return f"Ошибка: Функция '{func_name}' не поддерживается."
-
-            return self.tools[func_name](**args)
-
-        except json.JSONDecodeError as e:
-            return f"Ошибка: Некорректный формат JSON. {e}"
-        except TypeError as e:
-            return f"Ошибка в аргументах функции '{func_name}': {e}"
-        except Exception as e:
-            return f"Критическая ошибка при выполнении '{func_name}': {e}"
 
     def run(self) -> None:
         print("🚀 AI-OS Bridge (Local Mode) запущен.")
@@ -137,7 +94,7 @@ class AIOSBridge:
                 if call_line:
                     print(f"🤖 AI вызывает инструмент... ({i + 1}/{settings.max_iterations})")
                     print(f"   ↳ {call_line.strip()}")
-                    observation = self.execute_call(call_line)
+                    observation = self.tools_executor.execute(call_line)
                     obs_text = observation if observation is not None else "Success"
                     print(f"📝 Результат: {obs_text[:120]}...")
                     self.history.append({"role": "user", "content": f"OBSERVATION: {obs_text}"})
