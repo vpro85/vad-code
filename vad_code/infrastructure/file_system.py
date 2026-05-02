@@ -1,10 +1,11 @@
 from pathlib import Path
-from ..config import PROJECT_ROOT
+
+from ..config import settings
 
 
 class FileSystemService:
     def __init__(self) -> None:
-        self.root = Path(PROJECT_ROOT).resolve()
+        self.root = Path(settings.project_root).resolve()
 
     def safe_path(self, path: str) -> Path:
         """Проверяет, что путь находится внутри разрешенной директории."""
