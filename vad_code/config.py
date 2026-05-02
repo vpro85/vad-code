@@ -7,7 +7,7 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    project_root = str(Path(__file__).parent.parent.resolve())
+    project_root: str = str(Path(__file__).parent.parent.resolve())
     lm_studio_url: str = "http://127.0.0.1:1234/v1/chat/completions"
     model_name: str = "google/gemma-4-26b-a4b"
     max_iterations: int = 50
