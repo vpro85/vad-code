@@ -1,11 +1,12 @@
 """Главный модуль"""
-import ast
-from pathlib import Path
+import json
+import re
 from typing import Optional
+
+import httpx
 
 from vad_code.tools.file_tools import FileTools
 from .config import PROJECT_ROOT, LM_STUDIO_URL, MODEL_NAME, MAX_ITERATIONS, MAX_HISTORY_MESSAGES, TIMEOUT
-import httpx
 
 
 class AIOSBridge:
@@ -23,13 +24,15 @@ class AIOSBridge:
             "3. write_file(filepath, content) - записывает текст в файл (перезаписывает).\n"
             "4. replace_in_file(filepath, old_text, new_text) - заменяет старый текст на новый в файле.\n\n"
             "ПРОТОКОЛ ВЗАИМОДЕЙСТВИЯ:\n"
-            "- Ты можешь использовать как именованные (keyword), так и позиционные аргументы для краткости.\n"
-            "- Пример вызова: `CALL: list_files('.')` или `CALL: read_file(filepath='path/to/file')`\n"
-            "- Если тебе нужно использовать инструмент, используй формат:\n"
-            "  CALL: <function_name>(<args>)\n"
-            "- После этого ты получишь ответ в формате: OBSERVATION: [результат]\n"
-            "- Когда у тебя будет достаточно информации для ответа "
-            "пользователю, просто напиши финальный ответ.\n"
+            "- Для вызова инструментов ОБЯЗАТЕЛЬНО используй блок кода JSON:\n"
+            "```json\n"
+            "{\n"
+            '  "tool": "имя_функции",\n'
+            '  "arguments": {"аргумент1": "значение1", "арting2": 123}\n'
+            "}\n"
+            "```\n"
+            "- После каждого вызова ты получишь ответ в формате: OBSERVATION: [результат]\n"
+            "- Когда у тебя будет достаточно информации для ответа пользователю, просто напиши финальный ответ.\n"
             "- Никогда не выдумывай содержимое файлов, используй только read_file."
         )
         self.history: list[dict] = []
@@ -54,54 +57,38 @@ class AIOSBridge:
         return [{"role": "system", "content": self.system_prompt}] + self.history
 
     def _find_call_line(self, ai_response: str) -> str | None:
-        """Возвращает полный текст вызова, даже если он занимает несколько строк"""
-        if "CALL:" not in ai_response:
-            return None
-
-        start_idx = ai_response.find("CALL:")
-        end_idx = ai_response.rfind(")")
-
-        if end_idx == -1 or end_idx < start_idx:
-            return None
-
-        return ai_response[start_idx: end_idx + 1]
+        """Ищет JSON-блок в ответе модели"""
+        # Ищем содержимое между ```json и ```
+        pattern = r"```json\s*(.*?)\s*```"
+        match = re.search(pattern, ai_response, re.DOTALL)
+        if match:
+            return match.group(1)
+        return None
 
     def execute_call(self, call_text: str) -> Optional[str]:
-        """Парсит строку CALL с использованием AST и вызывает функцию из реестра self.tools"""
-        code = call_text.replace("CALL:", "").strip()
-
+        """Парсит JSON-строку и вызывает функцию из реестра self.tools"""
         try:
-            tree = ast.parse(code, mode="eval")
-            call_node = tree.body
+            # Превращаем строку в Python-словарь
+            call_data = json.loads(call_text)
 
-            if not isinstance(call_node, ast.Call):
-                return None
+            func_name = call_data.get("tool")
+            args = call_data.get("arguments", {})
 
-            if not isinstance(call_node.func, ast.Name):
-                return None
+            if not func_name:
+                return "Ошибка: В JSON не указано поле 'tool'."
 
-            func_name = call_node.func.id
             if func_name not in self.tools:
-                return f"Ошибка: Функция {func_name} не поддерживается."
+                return f"Ошибка: Функция '{func_name}' не поддерживается."
 
-            # Извлекаем позиционные аргументы
-            args = [ast.literal_eval(arg) for arg in call_node.args]
+            # Вызываем функцию, распаковывая словарь аргументов как именованные параметры
+            return self.tools[func_name](**args)
 
-            # Извлекаем именованные аргументы (keywords)
-            kwargs = {}
-            for kw in call_node.keywords:
-                kwargs[kw.arg] = ast.literal_eval(kw.value)
-
-            return self.tools[func_name](*args, **kwargs)
-
-        except SyntaxError:
-            return "Ошибка: Некорректный синтаксис вызова функции."
-        except ValueError as e:
-            return f"Ошибка в значениях аргументов: {e}"
+        except json.JSONDecodeError as e:
+            return f"Ошибка: Некорректный формат JSON. {e}"
         except TypeError as e:
-            return f"Ошибка в аргументах функции {func_name}: {e}"
+            return f"Ошибка в аргументах функции '{func_name}': {e}"
         except Exception as e:
-            return f"Критическая ошибка при выполнении {func_name}: {e}"
+            return f"Критическая ошибка при выполнении '{func_name}': {e}"
 
     def query_llm(self) -> str:
         """Отправка запроса в LM Studio и получение ответа"""
