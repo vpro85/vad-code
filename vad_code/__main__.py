@@ -1,12 +1,13 @@
 """Точка входа"""
+from vad_code.infrastructure.logger import log
 from vad_code.core.agent import Agent
 from vad_code.config import settings
 
 
 def run() -> None:
-    print("🚀 AI-OS Bridge (Local Mode) запущен.")
-    print(f"Подключение к {settings.lm_studio_url}")
-    print(f"Рабочая директория: {settings.project_root}\n")
+    log.info("🚀 AI-OS Bridge (Local Mode) запущен.")
+    log.info(f"Подключение к {settings.lm_studio_url}")
+    log.info(f"Рабочая директория: {settings.project_root}\n")
 
     agent = Agent()
 
@@ -28,4 +29,4 @@ if __name__ == "__main__":
     try:
         run()
     except KeyboardInterrupt:
-        print("\n\n👋 Выход из системы...")
+        log.info("\n\n👋 Выход из системы...")
