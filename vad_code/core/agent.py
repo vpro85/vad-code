@@ -4,6 +4,7 @@ import re
 
 from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_client import LLMClient
+from vad_code.infrastructure.logger import log
 from vad_code.tools.file_tools import TOOL_REGISTRY
 from vad_code.config import settings
 
@@ -70,9 +71,9 @@ class Agent:
             msg_b = self.history[idx + 1]
             # Удаляем только валидную пару: assistant → user(OBSERVATION)
             if (
-                msg_a["role"] == "assistant"
-                and msg_b["role"] == "user"
-                and msg_b["content"].startswith("OBSERVATION:")
+                    msg_a["role"] == "assistant"
+                    and msg_b["role"] == "user"
+                    and msg_b["content"].startswith("OBSERVATION:")
             ):
                 total_chars -= len(msg_a["content"]) + len(msg_b["content"])
                 del self.history[idx: idx + 2]
@@ -105,8 +106,8 @@ class Agent:
         if len(observation) <= MAX_OBSERVATION_CHARS:
             return observation
         return (
-            observation[:MAX_OBSERVATION_CHARS]
-            + f"\n[... обрезано, всего {len(observation)} символов ...]"
+                observation[:MAX_OBSERVATION_CHARS]
+                + f"\n[... обрезано, всего {len(observation)} символов ...]"
         )
 
     # ------------------------------------------------------------------
@@ -129,12 +130,12 @@ class Agent:
 
                 if observation is None:
                     # Невалидный вызов — считаем финальным ответом
-                    print(f"\n🤖 AI: {ai_response}\n")
+                    log.info(f"\n🤖 AI: {ai_response}\n")
                     return
 
                 tool_name = self._get_tool_name(call_json)
-                print(f"🤖 AI вызывает [{tool_name}]... ({i + 1}/{settings.max_iterations})")
-                print(f"📝 Результат: {observation[:120]}{'...' if len(observation) > 120 else ''}")
+                log.info(f"🤖 AI вызывает [{tool_name}]... ({i + 1}/{settings.max_iterations})")
+                log.info(f"📝 Результат: {observation[:120]}{'...' if len(observation) > 120 else ''}")
 
                 # Сохраняем усечённую версию — полный контент не нужен в истории
                 self.history.append({
@@ -142,7 +143,7 @@ class Agent:
                     "content": f"OBSERVATION: {self._truncate_observation(observation)}",
                 })
             else:
-                print(f"\n🤖 AI: {ai_response}\n")
+                log.info(f"\n🤖 AI: {ai_response}\n")
                 return
 
-        print("\n⚠️ Достигнут лимит итераций.")
+        log.error("\n⚠️ Достигнут лимит итераций.")
