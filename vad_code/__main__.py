@@ -45,21 +45,27 @@ class AIOSBridge:
         self.history: list[dict] = []
 
     def _trim_history(self) -> None:
-        # 1. Ограничение по количеству (как и было)
+        # Ограничение по количеству сообщений
         if len(self.history) > settings.max_history_messages:
+            # Сохраняем первое сообщение (цель сессии) и последние N-1 сообщений
             first_msg = self.history[0]
             recent_msgs = self.history[-(settings.max_history_messages - 1):]
             self.history = [first_msg] + recent_msgs
 
-        # 2. НОВОЕ: Ограничение по общему объему текста (примерно)
-        # Считаем общую длину всех сообщений в истории
+        # Ограничение по объему текста (в символах)
         total_chars = sum(len(msg['content']) for msg in self.history)
-        max_chars = 40000  # Примерный порог, чтобы не забить VRAM
+        max_chars = 40000
 
-        while total_chars > max_chars and len(self.history) > 2:
-            # Удаляем второе сообщение (первое — это цель пользователя, его храним)
-            removed = self.history.pop(1)
-            total_chars -= len(removed['content'])
+        while total_chars > max_chars and len(self.history) > 3:
+            # Чтобы не нарушить логику "Вызов -> Ответ",
+            # удаляем сообщения парами, начиная со второго элемента (индекс 1 и 2)
+            # Это сохраняет первое сообщение пользователя (индекс 0)
+            removed_call = self.history.pop(1)
+            total_chars -= len(removed_call['content'])
+
+            if len(self.history) > 1:
+                removed_obs = self.history.pop(1)
+                total_chars -= len(removed_obs['content'])
 
     def _build_messages(self) -> list[dict]:
         """Собирает финальный список сообщений с system prompt в начале"""
