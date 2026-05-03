@@ -1,10 +1,12 @@
 """Точка входа"""
-from vad_code.infrastructure.logger import log
-from vad_code.core.agent import Agent
+import asyncio
+
 from vad_code.config import settings
+from vad_code.core.agent import Agent
+from vad_code.infrastructure.logger import log
 
 
-def run() -> None:
+async def run() -> None:
     log.info("🚀 AI-OS Bridge (Local Mode) запущен.")
     log.info(f"Подключение к {settings.lm_studio_url}")
     log.info(f"Рабочая директория: {settings.project_root}\n")
@@ -22,11 +24,11 @@ def run() -> None:
         if user_input.lower() in {"exit", "quit"}:
             break
 
-        agent.handle(user_input)
+        await agent.handle(user_input)
 
 
 if __name__ == "__main__":
     try:
-        run()
+        asyncio.run(run())
     except KeyboardInterrupt:
         log.info("\n\n👋 Выход из системы...")

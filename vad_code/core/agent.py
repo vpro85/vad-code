@@ -114,13 +114,13 @@ class Agent:
     # Основной цикл
     # ------------------------------------------------------------------
 
-    def handle(self, user_input: str) -> None:
+    async def handle(self, user_input: str) -> None:
         """Обрабатывает один запрос пользователя"""
         self.history.append({"role": "user", "content": user_input})
 
         for i in range(settings.max_iterations):
             self._trim_history()
-            ai_response = self.llm_client.complete(self._build_messages())
+            ai_response = await self.llm_client.complete(self._build_messages())
             self.history.append({"role": "assistant", "content": ai_response})
 
             call_json = self._extract_call(ai_response)

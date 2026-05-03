@@ -1,14 +1,17 @@
 import httpx
+
 from vad_code.config import settings
+
 
 class LLMClient:
     """Отвечает только за сетевое взаимодействие с LLM"""
+
     def __init__(self) -> None:
         self.url = settings.lm_studio_url
         self.model = settings.model_name
         self.timeout = settings.timeout
 
-    def complete(self, messages: list[dict]) -> str:
+    async def complete(self, messages: list[dict]) -> str:  # Изменено на async
         payload = {
             "model": self.model,
             "messages": messages,
@@ -16,10 +19,12 @@ class LLMClient:
         }
 
         try:
-            response = httpx.post(self.url, json=payload, timeout=self.timeout)
-            response.raise_for_status()
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
+            # Используем AsyncClient для асинхронных запросов
+            async with httpx.AsyncClient() as client:
+                response = await client.post(self.url, json=payload, timeout=self.timeout)
+                response.raise_for_status()
+                result = response.json()
+                return result["choices"][0]["message"]["content"]
         except httpx.HTTPStatusError as e:
             return f"HTTP-ошибка от LM Studio: {e.response.status_code} - {e.response.text}"
         except httpx.RequestError as e:
