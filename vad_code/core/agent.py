@@ -7,6 +7,8 @@ from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.tools.file_tools import TOOL_REGISTRY
 from vad_code.config import settings
 
+MAX_OBSERVATION_CHARS = 2000
+
 
 class Agent:
     """Агент: хранит историю, формирует промпт, управляет циклом tool-call"""
@@ -58,7 +60,7 @@ class Agent:
             recent = self.history[-(settings.max_history_messages - 1):]
             self.history = [first_msg] + recent
 
-        # 2. Лимит по объему символов — удаляем пары (assistant + observation)
+        # 2. Лимит по объему символов — удаляем только валидные пары
         max_chars = 40_000
         total_chars = sum(len(m["content"]) for m in self.history)
 
@@ -75,13 +77,13 @@ class Agent:
                 total_chars -= len(msg_a["content"]) + len(msg_b["content"])
                 del self.history[idx: idx + 2]
             else:
-                idx += 1  # пропускаем «не пару»
+                idx += 1
 
     def _build_messages(self) -> list[dict]:
         return [{"role": "system", "content": self.system_prompt}] + self.history
 
     # ------------------------------------------------------------------
-    # Парсинг вызова инструмента
+    # Утилиты
     # ------------------------------------------------------------------
 
     @staticmethod
@@ -89,6 +91,23 @@ class Agent:
         """Извлекает JSON из блока ```json...``` если он есть"""
         match = re.search(r"```json\s*(.*?)\s*```", ai_response, re.DOTALL)
         return match.group(1) if match else None
+
+    @staticmethod
+    def _get_tool_name(call_json: str) -> str:
+        try:
+            return json.loads(call_json).get("tool", "?")
+        except Exception:
+            return "?"
+
+    @staticmethod
+    def _truncate_observation(observation: str) -> str:
+        """Обрезает большие OBSERVATION, чтобы не раздувать контекст"""
+        if len(observation) <= MAX_OBSERVATION_CHARS:
+            return observation
+        return (
+            observation[:MAX_OBSERVATION_CHARS]
+            + f"\n[... обрезано, всего {len(observation)} символов ...]"
+        )
 
     # ------------------------------------------------------------------
     # Основной цикл
@@ -116,16 +135,14 @@ class Agent:
                 tool_name = self._get_tool_name(call_json)
                 print(f"🤖 AI вызывает [{tool_name}]... ({i + 1}/{settings.max_iterations})")
                 print(f"📝 Результат: {observation[:120]}{'...' if len(observation) > 120 else ''}")
-                self.history.append({"role": "user", "content": f"OBSERVATION: {observation}"})
+
+                # Сохраняем усечённую версию — полный контент не нужен в истории
+                self.history.append({
+                    "role": "user",
+                    "content": f"OBSERVATION: {self._truncate_observation(observation)}",
+                })
             else:
                 print(f"\n🤖 AI: {ai_response}\n")
                 return
 
         print("\n⚠️ Достигнут лимит итераций.")
-
-    @staticmethod
-    def _get_tool_name(call_json: str) -> str:
-        try:
-            return json.loads(call_json).get("tool", "?")
-        except Exception:
-            return "?"
