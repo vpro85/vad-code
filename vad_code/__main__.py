@@ -6,14 +6,6 @@ from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 from .config import settings
 
-import logging
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    filename='ai_bridge.log'
-)
-
 
 class AIOSBridge:
     """Класс, реализующий взаимодействие LLM-модели и ОС"""
@@ -89,9 +81,9 @@ class AIOSBridge:
         return None
 
     def run(self) -> None:
-        logging.info("🚀 AI-OS Bridge (Local Mode) запущен.")
-        logging.info(f"Подключение к {settings.lm_studio_url}")
-        logging.info(f"Рабочая директория: {settings.project_root}\n")
+        print("🚀 AI-OS Bridge (Local Mode) запущен.")
+        print(f"Подключение к {settings.lm_studio_url}")
+        print(f"Рабочая директория: {settings.project_root}\n")
 
         while True:
             try:
@@ -116,17 +108,17 @@ class AIOSBridge:
                 call_line = self._find_call_line(ai_response)
 
                 if call_line:
-                    logging.info(f"🤖 AI вызывает инструмент... ({i + 1}/{settings.max_iterations})")
-                    logging.info(f"   ↳ {call_line.strip()}")
+                    print(f"🤖 AI вызывает инструмент... ({i + 1}/{settings.max_iterations})")
+                    print(f"   ↳ {call_line.strip()}")
                     observation = self.tools_executor.execute(call_line)
                     obs_text = observation if observation is not None else "Success"
-                    logging.info(f"📝 Результат: {obs_text[:120]}...")
+                    print(f"📝 Результат: {obs_text[:120]}...")
                     self.history.append({"role": "user", "content": f"OBSERVATION: {obs_text}"})
                 else:
-                    logging.info(f"\n🤖 AI: {ai_response}\n")
+                    print(f"\n🤖 AI: {ai_response}\n")
                     break
             else:
-                logging.warning("\n⚠️ Достигнут лимит итераций.")
+                print("\n⚠️ Достигнут лимит итераций.")
 
 
 if __name__ == "__main__":
@@ -134,4 +126,4 @@ if __name__ == "__main__":
         bridge = AIOSBridge()
         bridge.run()
     except KeyboardInterrupt:
-        logging.exception("\n\n👋 Выход из системы...")
+        print("\n\n👋 Выход из системы...")
