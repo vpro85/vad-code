@@ -1,5 +1,6 @@
 import inspect
 import json
+import traceback
 from typing import Optional
 
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
@@ -50,13 +51,13 @@ class ToolExecutor:
 
             func = self.tools[func_name]
             if inspect.iscoroutinefunction(func):
-                return await func(**final_args)
+                result = await func(**final_args)
             else:
-                return func(**final_args)
+                result = func(**final_args)
 
-        except json.JSONDecodeError as e:
-            return f"Ошибка: Некорректный формат JSON. {e}"
-        except TypeError as e:
-            return f"Ошибка в аргументах функции '{func_name}': {e}"
+            return str(result) if result is not None else "Success"
+
         except Exception as e:
-            return f"Критическая ошибка при выполнении '{func_name}': {e}"
+            # Формируем подробный отчет об ошибке для агента
+            error_details = traceback.format_exc()
+            return f"❌ Ошибка при выполнении инструмента '{func_name}':\n{error_details}"
