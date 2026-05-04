@@ -18,17 +18,26 @@ class Agent:
         self.llm_client = LLMClient()
         self.executor = ToolExecutor()
         self.history: list[dict] = []
+
+        # Список наборов инструментов, которые нужно подключить
+        # В будущем сюда можно добавить NetworkTools(), DatabaseTools() и т.д.
+        self.tool_sets = [
+            FileTools()
+        ]
+
+        self._register_all_tools()
         self.system_prompt = self._build_system_prompt()
 
-        # Регистрация инструментов (Dependency Injection)
-        self.file_tools = FileTools()
-
-        for name, info in TOOL_REGISTRY.items():
-            if hasattr(self.file_tools, name):
-                method = getattr(self.file_tools, name)
-                # Регистрируем и функцию, и схему (если она есть в реестре)
-                schema = info.get("schema")
-                self.executor.register_tool(name, method, schema=schema)
+    def _register_all_tools(self) -> None:
+        """Автоматически регистрирует все методы из всех подключенных наборов инструментов"""
+        for tool_set in self.tool_sets:
+            for name, info in TOOL_REGISTRY.items():
+                # Проверяем, есть ли в текущем наборе инструмент из реестра
+                if hasattr(tool_set, name):
+                    method = getattr(tool_set, name)
+                    schema = info.get("schema")
+                    self.executor.register_tool(name, method, schema=schema)
+                    log.debug(f"Инструмент '{name}' успешно зарегистрирован.")
 
     # ------------------------------------------------------------------
     # Системный промпт
