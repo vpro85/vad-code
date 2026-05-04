@@ -13,18 +13,23 @@ async def run() -> None:
 
     agent = Agent()
 
-    while True:
-        try:
-            user_input = input("Вы: ").strip()
-        except EOFError:
-            break
+    try:
+        while True:
+            try:
+                user_input = input("Вы: ").strip()
+            except EOFError:
+                break
 
-        if not user_input:
-            continue
-        if user_input.lower() in {"exit", "quit"}:
-            break
+            if not user_input:
+                continue
+            if user_input.lower() in {"exit", "quit"}:
+                break
 
-        await agent.handle(user_input)
+            await agent.handle(user_input)
+    finally:
+        # Гарантируем закрытие клиента httpx
+        await agent.close()
+        log.info("Сетевые соединения закрыты.")
 
 
 if __name__ == "__main__":

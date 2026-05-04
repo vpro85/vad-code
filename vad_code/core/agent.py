@@ -147,3 +147,7 @@ class Agent:
                 return
 
         log.error("\n⚠️ Достигнут лимит итераций.")
+
+    async def close(self) -> None:
+        """Закрывает сетевые соединения агента"""
+        await self.llm_client.close()
