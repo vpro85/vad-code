@@ -18,8 +18,6 @@ class ToolExecutor:
             self.schemas[name] = schema
 
     async def execute(self, call_text: str) -> Optional[str]:
-        """Парсит JSON, валидирует через зарегистрированные схемы и вызывает функцию."""
-        func_name = None
         try:
             call_data = json.loads(call_text)
             func_name = call_data.get("tool")
@@ -28,7 +26,10 @@ class ToolExecutor:
             if not func_name:
                 return "Ошибка: В JSON не указано поле 'tool'."
 
-            # 1. Валидация, если для этого инструмента есть схема
+            # --- ДОБАВЛЕНО: Лог начала вызова ---
+            print(f"\n[🛠️ Tool Call] {func_name}({args})")
+            # ------------------------------------
+
             final_args = args
             if func_name in self.schemas:
                 schema = self.schemas[func_name]
@@ -36,13 +37,15 @@ class ToolExecutor:
                     validated_model = schema.model_validate(args)
                     final_args = validated_model.model_dump()
                 except Exception as e:
-                    return f"Ошибка валидации аргументов: {e}"
+                    error_msg = f"Ошибка валидации аргументов: {e}"
+                    print(f"[❌ Validation Error] {error_msg}")  # --- ДОБАВЛЕНО ---
+                    return error_msg
 
-            # 2. Проверка наличия функции
             if func_name not in self.tools:
-                return f"Ошибка: Инструмент '{func_name}' не зарегистрирован."
+                error_msg = f"Ошибка: Инструмент '{func_name}' не зарегистрирован."
+                print(f"[❌ Tool Not Found] {error_msg}")  # --- ДОБАВЛЕНО ---
+                return error_msg
 
-            # 3. Вызов
             func = self.tools[func_name]
             import inspect
             if inspect.iscoroutinefunction(func):
@@ -50,9 +53,12 @@ class ToolExecutor:
             else:
                 result = func(**final_args)
 
-            return str(result) if result is not None else "Success"
+            # --- ДОБАВЛЕНО: Лог успеха ---
+            print(f"[✅ Success] {func_name} completed.")
+            # -----------------------------
 
-        except json.JSONDecodeError:
-            return "Ошибка: Некорректный формат JSON."
+            return str(result) if result is not None else "Success"
         except Exception as e:
-            return f"Ошибка при выполнении инструмента '{func_name}':\n{traceback.format_exc()}"
+            error_msg = f"Ошибка при выполнении инструмента: {str(e)}"
+            print(f"[💥 Critical Error] {error_msg}")  # --- ДОБАВЛЕНО ---
+            return error_msg
