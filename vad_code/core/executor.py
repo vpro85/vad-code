@@ -1,7 +1,8 @@
 import json
-from typing import Optional, Any
+from typing import Optional
 
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
+
 
 class ToolExecutor:
     """Класс, отвечающий за выполнение инструментов (tool calls)"""
@@ -30,12 +31,15 @@ class ToolExecutor:
             if not func_name:
                 return "Ошибка: В JSON не указано поле 'tool'."
 
-            # 2. Валидация аргументов через Pydantic (если схема есть в реестре)
+            # 2. Валидация аргументов через Pydantic
+            final_args = args
             if func_name in TOOL_REGISTRY:
                 schema = TOOL_REGISTRY[func_name].get("schema")
                 if schema:
                     try:
-                        schema.model_validate(args)
+                        # Сохраняем результат валидации (здесь происходит приведение типов)
+                        validated_model = schema.model_validate(args)
+                        final_args = validated_model.model_dump()
                     except Exception as e:
                         return f"Ошибка валидации аргументов: {e}"
 
@@ -43,7 +47,7 @@ class ToolExecutor:
             if func_name not in self.tools:
                 return f"Ошибка: Функция '{func_name}' не поддерживается."
 
-            return self.tools[func_name](**args)
+            return self.tools[func_name](**final_args)  # Используем очищенные аргументы
 
         except json.JSONDecodeError as e:
             return f"Ошибка: Некорректный формат JSON. {e}"
