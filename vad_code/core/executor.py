@@ -1,3 +1,4 @@
+import inspect
 import json
 from typing import Optional
 
@@ -16,7 +17,7 @@ class ToolExecutor:
                 method = getattr(self.file_tools, name)
                 self.tools[name] = method
 
-    def execute(self, call_text: str) -> Optional[str]:
+    async def execute(self, call_text: str) -> Optional[str]:
         """
         Парсит JSON-строку, валидирует аргументы через Pydantic и вызывает функцию.
         Возвращает результат выполнения или сообщение об ошибке.
@@ -47,7 +48,11 @@ class ToolExecutor:
             if func_name not in self.tools:
                 return f"Ошибка: Функция '{func_name}' не поддерживается."
 
-            return self.tools[func_name](**final_args)  # Используем очищенные аргументы
+            func = self.tools[func_name]
+            if inspect.iscoroutinefunction(func):
+                return await func(**final_args)
+            else:
+                return func(**final_args)
 
         except json.JSONDecodeError as e:
             return f"Ошибка: Некорректный формат JSON. {e}"

@@ -126,7 +126,7 @@ class Agent:
             call_json = self._extract_call(ai_response)
 
             if call_json:
-                observation = self.executor.execute(call_json)
+                observation = await self.executor.execute(call_json)
 
                 if observation is None:
                     # Невалидный вызов — считаем финальным ответом
