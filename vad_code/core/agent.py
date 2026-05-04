@@ -2,11 +2,11 @@
 import json
 import re
 
+from vad_code.config import settings
 from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.infrastructure.logger import log
-from vad_code.tools.file_tools import TOOL_REGISTRY
-from vad_code.config import settings
+from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 
 MAX_OBSERVATION_CHARS = 2000
 
@@ -19,6 +19,16 @@ class Agent:
         self.executor = ToolExecutor()
         self.history: list[dict] = []
         self.system_prompt = self._build_system_prompt()
+
+        # Регистрация инструментов (Dependency Injection)
+        self.file_tools = FileTools()
+
+        for name, info in TOOL_REGISTRY.items():
+            if hasattr(self.file_tools, name):
+                method = getattr(self.file_tools, name)
+                # Регистрируем и функцию, и схему (если она есть в реестре)
+                schema = info.get("schema")
+                self.executor.register_tool(name, method, schema=schema)
 
     # ------------------------------------------------------------------
     # Системный промпт

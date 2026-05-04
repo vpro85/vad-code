@@ -1,31 +1,26 @@
-import inspect
 import json
 import traceback
-from typing import Optional
-
-from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
+from typing import Optional, Callable, Any
 
 
 class ToolExecutor:
-    """Класс, отвечающий за выполнение инструментов (tool calls)"""
+    """Класс, отвечающий исключительно за выполнение зарегистрированных инструментов."""
 
     def __init__(self) -> None:
-        self.file_tools = FileTools()
-        self.tools = {}
-        # Привязываем методы к словарю для быстрого доступа
-        for name in TOOL_REGISTRY:
-            if hasattr(self.file_tools, name):
-                method = getattr(self.file_tools, name)
-                self.tools[name] = method
+        # Храним функции и их схемы отдельно
+        self.tools: dict[str, Callable] = {}
+        self.schemas: dict[str, Any] = {}
+
+    def register_tool(self, name: str, func: Callable, schema: Any = None) -> None:
+        """Регистрация инструмента: имя, сама функция и Pydantic-схема."""
+        self.tools[name] = func
+        if schema:
+            self.schemas[name] = schema
 
     async def execute(self, call_text: str) -> Optional[str]:
-        """
-        Парсит JSON-строку, валидирует аргументы через Pydantic и вызывает функцию.
-        Возвращает результат выполнения или сообщение об ошибке.
-        """
+        """Парсит JSON, валидирует через зарегистрированные схемы и вызывает функцию."""
         func_name = None
         try:
-            # 1. Парсим JSON
             call_data = json.loads(call_text)
             func_name = call_data.get("tool")
             args = call_data.get("arguments", {})
@@ -33,23 +28,23 @@ class ToolExecutor:
             if not func_name:
                 return "Ошибка: В JSON не указано поле 'tool'."
 
-            # 2. Валидация аргументов через Pydantic
+            # 1. Валидация, если для этого инструмента есть схема
             final_args = args
-            if func_name in TOOL_REGISTRY:
-                schema = TOOL_REGISTRY[func_name].get("schema")
-                if schema:
-                    try:
-                        # Сохраняем результат валидации (здесь происходит приведение типов)
-                        validated_model = schema.model_validate(args)
-                        final_args = validated_model.model_dump()
-                    except Exception as e:
-                        return f"Ошибка валидации аргументов: {e}"
+            if func_name in self.schemas:
+                schema = self.schemas[func_name]
+                try:
+                    validated_model = schema.model_validate(args)
+                    final_args = validated_model.model_dump()
+                except Exception as e:
+                    return f"Ошибка валидации аргументов: {e}"
 
-            # 3. Вызов функции
+            # 2. Проверка наличия функции
             if func_name not in self.tools:
-                return f"Ошибка: Функция '{func_name}' не поддерживается."
+                return f"Ошибка: Инструмент '{func_name}' не зарегистрирован."
 
+            # 3. Вызов
             func = self.tools[func_name]
+            import inspect
             if inspect.iscoroutinefunction(func):
                 result = await func(**final_args)
             else:
@@ -57,7 +52,7 @@ class ToolExecutor:
 
             return str(result) if result is not None else "Success"
 
+        except json.JSONDecodeError:
+            return "Ошибка: Некорректный формат JSON."
         except Exception as e:
-            # Формируем подробный отчет об ошибке для агента
-            error_details = traceback.format_exc()
-            return f"❌ Ошибка при выполнении инструмента '{func_name}':\n{error_details}"
+            return f"Ошибка при выполнении инструмента '{func_name}':\n{traceback.format_exc()}"
