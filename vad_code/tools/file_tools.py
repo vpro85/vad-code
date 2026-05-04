@@ -56,6 +56,12 @@ class SearchInFilesSchema(BaseModel):
     file_glob: str = Field("*.py", description="Маска файлов, например *.py")
 
 
+class ReadFileLinesSchema(BaseModel):
+    path: str = Field(..., description="Путь к файлу")
+    start_line: int = Field(1, description="Номер начальной строки (начиная с 1)")
+    end_line: int = Field(100, description="Номер конечной строки")
+
+
 class FileTools:
     def __init__(self) -> None:
         self.fs = FileSystemService()
@@ -167,6 +173,30 @@ class FileTools:
             return f"Ошибка в regex-паттерне: {e}"
         except Exception as e:
             return f"Ошибка при поиске: {e}"
+
+    @register_tool(
+        "читает определенный диапазон строк из файла. Полезно для больших файлов.",
+        schema=ReadFileLinesSchema
+    )
+    def read_file_lines(self, path: str, start_line: int, end_line: int) -> str:
+        try:
+            full_path = self.fs.safe_path(path)
+            if not full_path.exists():
+                return f"Ошибка: Файл {path} не найден."
+
+            with open(full_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Корректируем индексы (1-based -> 0-based)
+            start_idx = max(0, start_line - 1)
+            end_idx = end_line
+
+            selected_lines = lines[start_idx:end_idx]
+            content = "".join(selected_lines)
+
+            return f"Строки {start_line}-{min(end_line, len(lines))}:\n\n{content}"
+        except Exception as e:
+            return f"Ошибка при чтении строк файла: {e}"
 
     def _create_backup(self, path: str) -> None:
         """Создает копию файла с расширением .bak перед изменением"""
