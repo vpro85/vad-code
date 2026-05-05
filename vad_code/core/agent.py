@@ -6,9 +6,9 @@ from vad_code.config import settings
 from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.infrastructure.logger import log
-from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
+from vad_code.tools.file_tools import TOOL_REGISTRY
 
-MAX_OBSERVATION_CHARS = 2000
+MAX_OBSERVATION_CHARS = 40_000
 
 
 class Agent:
