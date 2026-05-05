@@ -1,5 +1,6 @@
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 
 
 def setup_logger():
@@ -17,8 +18,14 @@ def setup_logger():
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
 
-    # Запись всех деталей в файл (DEBUG и выше)
-    file_handler = logging.FileHandler("agent.log", encoding="utf-8")
+    # Запись всех деталей в файл с ротацией:
+    # maxBytes=5*1024*1024 (5 MB), backupCount=5 (храним до 5 старых файлов)
+    file_handler = RotatingFileHandler(
+        "agent.log", 
+        maxBytes=5 * 1024 * 1024, 
+        backupCount=5, 
+        encoding="utf-8"
+    )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
