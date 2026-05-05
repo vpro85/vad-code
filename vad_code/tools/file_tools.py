@@ -202,6 +202,14 @@ class FileTools:
         except Exception as e:
             return f"Ошибка при чтении строк файла: {e}"
 
+    @register_tool("создает новую директорию", schema=CreateDirSchema)
+    def create_dir(self, path: str) -> str:
+        try:
+            self.fs.create_dir(path)
+            return f"Директория {path} успешно создана."
+        except Exception as e:
+            return f"Ошибка при создании директории {path}: {e}"
+
     def _create_backup(self, path: str) -> None:
         """Создает копию файла с расширением .bak перед изменением"""
         p = Path(path)
