@@ -62,6 +62,10 @@ class ReadFileLinesSchema(BaseModel):
     end_line: int = Field(100, description="Номер конечной строки")
 
 
+class CreateDirSchema(BaseModel):
+    path: str = Field(..., description="Путь к директории, которую нужно создать")
+
+
 class FileTools:
     def __init__(self) -> None:
         self.fs = FileSystemService()

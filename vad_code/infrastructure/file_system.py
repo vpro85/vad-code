@@ -37,3 +37,8 @@ class FileSystemService:
             raise ValueError("Текст для замены не найден.")
         new_content = content.replace(old_text, new_text)
         path.write_text(new_content, encoding="utf-8")
+
+    def create_dir(self, directory: str) -> None:
+        """Создает директорию."""
+        path = self.safe_path(directory)
+        path.mkdir(parents=True, exist_ok=True)
