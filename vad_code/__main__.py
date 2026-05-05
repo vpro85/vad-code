@@ -3,15 +3,29 @@ import asyncio
 
 from vad_code.config import settings
 from vad_code.core.agent import Agent
+from vad_code.core.executor import ToolExecutor
+from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.infrastructure.logger import log
+from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 
 
 async def run() -> None:
     log.info("🚀 AI-OS Bridge (Local Mode) запущен.")
     log.info(f"Подключение к {settings.lm_studio_url}")
     log.info(f"Рабочая директория: {settings.project_root}\n")
+    # 1. Создаем инфраструктурные компоненты
+    llm_client = LLMClient()
+    executor = ToolExecutor()
 
-    agent = Agent()
+    # 2. Настраиваем инструменты (теперь это делается на уровне конфигурации приложения)
+    file_tools = FileTools()
+    # Здесь мы вручную или через цикл регистрируем нужные методы
+    for name, info in TOOL_REGISTRY.items():
+        if hasattr(file_tools, name):
+            method = getattr(file_tools, name)
+            executor.register_tool(name, method, schema=info.get("schema"))
+
+    agent = Agent(llm_client=llm_client, executor=executor)
 
     try:
         while True:

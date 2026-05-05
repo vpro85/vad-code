@@ -12,32 +12,22 @@ MAX_OBSERVATION_CHARS = 2000
 
 
 class Agent:
-    """Агент: хранит историю, формирует промпт, управляет циклом tool-call"""
+    """Агент: управляет историей, формирует промпт и запускает цикл выполнения задач."""
 
-    def __init__(self) -> None:
-        self.llm_client = LLMClient()
-        self.executor = ToolExecutor()
+    def __init__(self, llm_client: LLMClient, executor: ToolExecutor) -> None:
+        """
+        Инициализация агента через внедрение зависимостей.
+
+        :param llm_client: Клиент для взаимодействия с LLM.
+        :param executor: Объект, содержащий зарегистрированные инструменты.
+        """
+        self.llm_client = llm_client
+        self.executor = executor
         self.history: list[dict] = []
 
-        # Список наборов инструментов, которые нужно подключить
-        # В будущем сюда можно добавить NetworkTools(), DatabaseTools() и т.д.
-        self.tool_sets = [
-            FileTools()
-        ]
-
-        self._register_all_tools()
+        # Теперь агент не знает о FileTools, он просто использует то, что есть в executor.
+        # Системный промпт строится на основе того, что зарегистрировано в TOOL_REGISTRY.
         self.system_prompt = self._build_system_prompt()
-
-    def _register_all_tools(self) -> None:
-        """Автоматически регистрирует все методы из всех подключенных наборов инструментов"""
-        for tool_set in self.tool_sets:
-            for name, info in TOOL_REGISTRY.items():
-                # Проверяем, есть ли в текущем наборе инструмент из реестра
-                if hasattr(tool_set, name):
-                    method = getattr(tool_set, name)
-                    schema = info.get("schema")
-                    self.executor.register_tool(name, method, schema=schema)
-                    log.debug(f"Инструмент '{name}' успешно зарегистрирован.")
 
     # ------------------------------------------------------------------
     # Системный промпт
