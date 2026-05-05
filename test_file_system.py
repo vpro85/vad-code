@@ -1,0 +1,81 @@
+import pytest
+from pathlib import Path
+from unittest.mock import patch
+from vad_code.infrastructure.file_system import FileSystemService
+
+@pytest.fixture
+def mock_settings(tmp_path):
+    """
+    Подменяет settings.project_root на временную директорию pytest,
+    чтобы тесты не влияли на реальные файлы проекта.
+    """
+    with patch('vad_code.infrastructure.file_system.settings') as mock:
+        mock.project_root = str(tmp_path)
+        yield mock
+
+@pytest.fixture
+def fs_service(mock_settings):
+    return FileSystemService()
+
+def test_safe_path_valid(fs_service, tmp_path):
+    # Создаем файл внутри временной директории
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("hello")
+    
+    # Проверяем, что доступ к файлу внутри корня разрешен
+    assert fs_service.safe_path("test.txt") == test_file.resolve()
+
+def test_safe_path_invalid(fs_service):
+    # Пытаемся выйти за пределы корня с помощью ../
+    with pytest.raises(PermissionError) as excinfo:
+        fs_service.safe_path("../../etc/passwd")
+    assert "Доступ запрещен" in str(excinfo.value)
+
+def test_read_text(fs_service, tmp_path):
+    # Подготовка: создаем файл
+    content = "Hello World"
+    file_path = tmp_path / "hello.txt"
+    file_path.write_text(content, encoding="utf-8")
+    
+    # Тест
+    assert fs_service.read_text("hello.txt") == content
+
+def test_write_text(fs_service, tmp_path):
+    # Тест записи
+    content = "New Content"
+    fs_service.write_text("new.txt", content)
+    
+    assert (tmp_path / "new.txt").read_text() == content
+
+def test_replace_text_success(fs_service, tmp_path):
+    # Подготовка
+    content = "The quick brown fox"
+    file_path = tmp_path / "fox.txt"
+    file_path.write_text(content, encoding="utf-8")
+    
+    # Тест замены
+    fs_service.replace_text("fox.txt", "brown", "red")
+    assert (tmp_path / "fox.txt").read_text() == "The quick red fox"
+
+def test_replace_text_not_found(fs_service, tmp_path):
+    # Подготовка
+    content = "The quick brown fox"
+    file_path = tmp_path / "fox.txt"
+    file_path.write_text(content, encoding="utf-8")
+    
+    # Тест ошибки при отсутствии текста для замены
+    with pytest.raises(ValueError) as excinfo:
+        fs_service.replace_text("fox.txt", "blue", "green")
+    assert "Текст для замены не найден" in str(excinfo.value)
+
+def test_list_dir(fs_service, tmp_path):
+    # Подготовка: создаем несколько файлов
+    (tmp_path / "file1.txt").touch()
+    (tmp_path / "file2.py").touch()
+    (tmp_path / "subdir").mkdir()
+    
+    files = fs_service.list_dir(".")
+    assert "file1.txt" in files
+    assert "file2.py" in files
+    assert "subdir" in files
+    assert len(files) == 3
