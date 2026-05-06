@@ -42,3 +42,18 @@ class FileSystemService:
         """Создает директорию."""
         path = self.safe_path(directory)
         path.mkdir(parents=True, exist_ok=True)
+
+    def move_file(self, src: str, dst: str) -> None:
+        """Перемещает файл или директорию."""
+        src_path = self.safe_path(src)
+        dst_path = self.safe_path(dst)
+        src_path.rename(dst_path)
+
+    def delete_file(self, filepath: str) -> None:
+        """Удаляет файл или директорию."""
+        path = self.safe_path(filepath)
+        if path.is_dir():
+            import shutil
+            shutil.rmtree(path)
+        else:
+            path.unlink()

@@ -66,6 +66,15 @@ class CreateDirSchema(BaseModel):
     path: str = Field(..., description="Путь к директории, которую нужно создать")
 
 
+class MoveFileSchema(BaseModel):
+    src: str = Field(..., description="Путь к исходному файлу или папке")
+    dst: str = Field(..., description="Путь назначения")
+
+
+class DeleteFileSchema(BaseModel):
+    path: str = Field(..., description="Путь к файлу или папке для удаления")
+
+
 class FileTools:
     def __init__(self) -> None:
         self.fs = FileSystemService()
@@ -209,6 +218,24 @@ class FileTools:
             return f"Директория {path} успешно создана."
         except Exception as e:
             return f"Ошибка при создании директории {path}: {e}"
+
+    @register_tool("перемещает или переименовывает файл/директорию", schema=MoveFileSchema)
+    def move_file(self, src: str, dst: str) -> str:
+        try:
+            self.fs.move_file(src, dst)
+            self._cache.pop(src, None)
+            return f"Объект {src} успешно перемещен в {dst}."
+        except Exception as e:
+            return f"Ошибка при перемещении {src} -> {dst}: {e}"
+
+    @register_tool("удаляет файл или директорию", schema=DeleteFileSchema)
+    def delete_file(self, path: str) -> str:
+        try:
+            self.fs.delete_file(path)
+            self._cache.pop(path, None)
+            return f"Объект {path} успешно удален."
+        except Exception as e:
+            return f"Ошибка при удалении {path}: {e}"
 
     def _create_backup(self, path: str) -> None:
         """Создает копию файла с расширением .bak перед изменением"""
