@@ -51,7 +51,7 @@ class ReplaceInFileSchema(BaseModel):
 
 
 class SearchInFilesSchema(BaseModel):
-    pattern: str = Field(..., description="Строка или regex для поиска")
+    query: str = Field(..., description="Строка или regex для поиска")
     path: str = Field(".", description="Директория для поиска")
     file_glob: str = Field("*.py", description="Маска файлов, например *.py")
 
@@ -154,11 +154,11 @@ class FileTools:
         "ищет строку или regex в файлах проекта — используй вместо последовательных read_file.",
         schema=SearchInFilesSchema,
     )
-    def search_in_files(self, pattern: str, path: str = ".", file_glob: str = "*.py") -> str:
+    def search_in_files(self, query: str, path: str = ".", file_glob: str = "*.py") -> str:
         try:
             root = self.fs.safe_path(path)
             results = []
-            compiled = re.compile(pattern)
+            compiled = re.compile(query)
 
             for filepath in sorted(root.rglob(file_glob)):
                 # Не ищем внутри служебных директорий
@@ -174,7 +174,7 @@ class FileTools:
                     continue  # бинарные файлы и т.п.
 
             if not results:
-                return f"Совпадений для '{pattern}' не найдено."
+                return f"Совпадений для '{query}' не найдено."
 
             MAX_RESULTS = 50
             output = "\n".join(results[:MAX_RESULTS])
