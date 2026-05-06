@@ -75,6 +75,10 @@ class DeleteFileSchema(BaseModel):
     path: str = Field(..., description="Путь к файлу или папке для удаления")
 
 
+class RunCommandSchema(BaseModel):
+    command: str = Field(..., description="Команда для запуска (например, 'pytest tests/test_file_system.py')")
+
+
 class FileTools:
     def __init__(self) -> None:
         self.fs = FileSystemService()
@@ -236,6 +240,50 @@ class FileTools:
             return f"Объект {path} успешно удален."
         except Exception as e:
             return f"Ошибка при удалении {path}: {e}"
+
+    @register_tool("запускает тесты или другие разрешенные команды в терминале", schema=RunCommandSchema)
+    def run_command(self, command: str) -> str:
+        import subprocess
+        import shlex
+
+        # Список разрешенных команд для защиты
+        ALLOWED_COMMANDS = {"pytest", "pylint", "flake8", "mypy"}
+        
+        try:
+            args = shlex.split(command)
+            if not args:
+                return "Ошибка: пустая команда."
+
+            # Проверка базовой команды
+            base_cmd = args[0]
+            if base_cmd not in ALLOWED_COMMANDS:
+                return f"Ошибка: команда '{base_cmd}' запрещена. Разрешены только: {', '.join(ALLOWED_COMMANDS)}"
+
+            # Запуск команды без shell=True для предотвращения инъекций
+            result = subprocess.run(
+                args,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=self.fs.root
+            )
+
+            stdout = result.stdout
+            stderr = result.stderr
+            exit_code = result.returncode
+
+            output = f"Код выхода: {exit_code}\n"
+            if stdout:
+                output += f"STDOUT:\n{stdout}\n"
+            if stderr:
+                output += f"STDERR:\n{stderr}\n"
+
+            return output if output.strip() else "Команда выполнена, вывод пуст."
+
+        except subprocess.TimeoutExpired:
+            return "Ошибка: время выполнения команды истекло (таймаут 60с)."
+        except Exception as e:
+            return f"Ошибка при выполнении команды: {e}"
 
     def _create_backup(self, path: str) -> None:
         """Создает копию файла с расширением .bak перед изменением"""
