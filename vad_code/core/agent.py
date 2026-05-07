@@ -98,35 +98,9 @@ class Agent:
 
     @staticmethod
     def _extract_call(ai_response: str) -> str | None:
-        """
-        Извлекает валидный JSON-объект из ответа модели.
-
-        Стратегия многоуровневая — от строгой к мягкой:
-        1. Ищем ```json ... ``` блок (канонический формат).
-        2. Ищем любой {...} объект, содержащий ключ "tool" — страховка
-           на случай если модель забыла обернуть блок в тройные кавычки.
-        3. Если найденная строка не парсится как JSON — возвращаем None,
-           чтобы агент не передавал мусор в executor.
-        """
-        # 1. Канонический формат: ```json ... ```
-        # re.DOTALL нужен чтобы захватить многострочный JSON внутри блока
-        match = re.search(r"```json\s*(\{.*?\})\s*```", ai_response, re.DOTALL)
-        if match:
-            candidate = match.group(1).strip()
-            if _is_valid_tool_call(candidate):
-                return candidate
-
-        # 2. Мягкий fallback: любой {...} с ключом "tool"
-        # Жадный поиск от первой { до последней } — это важно для
-        # многострочных JSON с вложенными объектами в аргументах.
-        match = re.search(r"(\{[^`]*?\"tool\"\s*:[^`]*?\})", ai_response, re.DOTALL)
-        if match:
-            candidate = match.group(1).strip()
-            if _is_valid_tool_call(candidate):
-                log.debug("Использован fallback-парсинг tool call (без ```json```)")
-                return candidate
-
-        return None
+        """Извлекает JSON из блока ```json...``` если он есть"""
+        match = re.search(r"```json\s*(.*?)\s*```", ai_response, re.DOTALL)
+        return match.group(1) if match else None
 
     @staticmethod
     def _get_tool_name(call_json: str) -> str:
@@ -186,18 +160,3 @@ class Agent:
     async def close(self) -> None:
         """Закрывает сетевые соединения агента"""
         await self.llm_client.close()
-
-
-
-# ------------------------------------------------------------------
-# Вспомогательная функция (модульный уровень — не метод класса,
-# чтобы _extract_call оставался @staticmethod без self)
-# ------------------------------------------------------------------
-
-def _is_valid_tool_call(text: str) -> bool:
-    """Возвращает True если строка — валидный JSON с ключом 'tool'."""
-    try:
-        data = json.loads(text)
-        return isinstance(data, dict) and "tool" in data
-    except json.JSONDecodeError:
-        return False
