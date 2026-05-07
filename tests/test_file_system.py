@@ -79,3 +79,40 @@ def test_list_dir(fs_service, tmp_path):
     assert "file2.py" in files
     assert "subdir" in files
     assert len(files) == 3
+
+def test_create_dir(fs_service, tmp_path):
+    # Тест создания директории
+    dir_name = "new_folder/subfolder"
+    fs_service.create_dir(dir_name)
+    assert (tmp_path / dir_name).is_dir()
+
+def test_move_file(fs_service, tmp_path):
+    # Подготовка: создаем файл
+    src = "old_name.txt"
+    dst = "new_name.txt"
+    (tmp_path / src).write_text("content")
+    
+    # Тест перемещения
+    fs_service.move_file(src, dst)
+    assert (tmp_path / dst).exists()
+    assert not (tmp_path / src).exists()
+
+def test_delete_file_file(fs_service, tmp_path):
+    # Подготовка: создаем файл
+    filename = "to_delete.txt"
+    (tmp_path / filename).touch()
+    
+    # Тест удаления файла
+    fs_service.delete_file(filename)
+    assert not (tmp_path / filename).exists()
+
+def test_delete_file_dir(fs_service, tmp_path):
+    # Подготовка: создаем директорию с файлом внутри
+    dir_name = "to_delete_dir"
+    dir_path = tmp_path / dir_name
+    dir_path.mkdir()
+    (dir_path / "inner.txt").touch()
+    
+    # Тест удаления директории
+    fs_service.delete_file(dir_name)
+    assert not dir_path.exists()
