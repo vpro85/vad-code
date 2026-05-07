@@ -287,7 +287,10 @@ class FileTools:
 
     def _create_backup(self, path: str) -> None:
         """Создает копию файла с расширением .bak перед изменением"""
-        p = Path(path)
-        if p.exists():
-            backup_path = p.with_suffix(p.suffix + ".bak")
-            shutil.copy2(p, backup_path)
+        try:
+            p = self.fs.safe_path(path)
+            if p.exists():
+                backup_path = p.with_suffix(p.suffix + ".bak")
+                shutil.copy2(p, backup_path)
+        except Exception:
+            pass
