@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     max_iterations: int = 50
     max_history_messages: int = 20
     timeout: int = 1200
+    max_context_tokens: int = 8192
 
 
 settings = Settings()
