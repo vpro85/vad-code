@@ -63,32 +63,36 @@ class Agent:
     # ------------------------------------------------------------------
 
     def _trim_history(self) -> None:
-        """Обрезает историю, сохраняя первое сообщение сессии"""
-        # 1. Лимит по количеству сообщений
+        """Обрезает историю, сохраняя первое сообщение сессии и соблюдая лимиты."""
+        # 1. Лимит по количеству сообщений (сохраняем системное/первое сообщение)
         if len(self.history) > settings.max_history_messages:
             first_msg = self.history[0]
             recent = self.history[-(settings.max_history_messages - 1):]
             self.history = [first_msg] + recent
 
-        # 2. Лимит по объему символов — удаляем только валидные пары
+        # 2. Лимит по объему символов
         total_chars = sum(len(m["content"]) for m in self.history)
-        print("===========================")
-        print(f"=== Total chars: {total_chars}")
-        print("===========================")
+        log.debug(f"Current history size: {total_chars} chars, {len(self.history)} messages")
 
-        idx = 1  # никогда не трогаем первое сообщение (индекс 0)
+        if total_chars <= MAX_OBSERVATION_CHARS:
+            return
+
+        idx = 1  # Никогда не трогаем первое сообщение (индекс 0)
         while total_chars > MAX_OBSERVATION_CHARS and idx + 1 < len(self.history):
             msg_a = self.history[idx]
             msg_b = self.history[idx + 1]
-            # Удаляем только валидную пару: assistant → user(OBSERVATION)
+            
+            # Пытаемся удалять пары: [assistant (tool call)] + [user (observation)]
             if (
-                    msg_a["role"] == "assistant"
-                    and msg_b["role"] == "user"
-                    and msg_b["content"].startswith("OBSERVATION:")
+                msg_a["role"] == "assistant"
+                and msg_b["role"] == "user"
+                and msg_b["content"].startswith("OBSERVATION:")
             ):
-                total_chars -= len(msg_a["content"]) + len(msg_b["content"])
-                del self.history[idx: idx + 2]
+                pair_size = len(msg_a["content"]) + len(msg_b["content"])
+                total_chars -= pair_size
+                del self.history[idx : idx + 2]
             else:
+                # Если пара не подходит под паттерн, просто сдвигаемся дальше
                 idx += 1
 
     def _build_messages(self) -> list[dict]:
