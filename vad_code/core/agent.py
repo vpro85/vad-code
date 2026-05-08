@@ -71,11 +71,13 @@ class Agent:
             self.history = [first_msg] + recent
 
         # 2. Лимит по объему символов — удаляем только валидные пары
-        max_chars = 40_000
         total_chars = sum(len(m["content"]) for m in self.history)
+        print("===========================")
+        print(f"=== Total chars: {total_chars}")
+        print("===========================")
 
         idx = 1  # никогда не трогаем первое сообщение (индекс 0)
-        while total_chars > max_chars and idx + 1 < len(self.history):
+        while total_chars > MAX_OBSERVATION_CHARS and idx + 1 < len(self.history):
             msg_a = self.history[idx]
             msg_b = self.history[idx + 1]
             # Удаляем только валидную пару: assistant → user(OBSERVATION)
@@ -104,12 +106,12 @@ class Agent:
             return None
 
         # Проверяем блоки с конца, чтобы найти первый валидный вызов инструмента
-        for call_json in reversed(matches):
+        for candidate in reversed(matches):
             try:
-                data = json.loads(call_json)
+                data = json.loads(candidate)
                 if isinstance(data, dict) and "tool" in data:
-                    return call_json
-            except Exception:
+                    return candidate
+            except (json.JSONDecodeError, ValueError):
                 continue
         return None
 
