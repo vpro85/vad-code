@@ -98,9 +98,20 @@ class Agent:
 
     @staticmethod
     def _extract_call(ai_response: str) -> str | None:
-        """Извлекает JSON из блока ```json...``` если он есть"""
-        match = re.search(r"```json\s*(.*?)\s*```", ai_response, re.DOTALL)
-        return match.group(1) if match else None
+        """Извлекает ПОСЛЕДНИЙ JSON из блоков ```json...```, если он содержит ключ 'tool'"""
+        matches = re.findall(r"```json\s*(.*?)\s*```", ai_response, re.DOTALL)
+        if not matches:
+            return None
+
+        # Проверяем блоки с конца, чтобы найти первый валидный вызов инструмента
+        for call_json in reversed(matches):
+            try:
+                data = json.loads(call_json)
+                if isinstance(data, dict) and "tool" in data:
+                    return call_json
+            except Exception:
+                continue
+        return None
 
     @staticmethod
     def _get_tool_name(call_json: str) -> str:
