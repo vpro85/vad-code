@@ -8,7 +8,7 @@ from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.infrastructure.logger import log
 from vad_code.tools.file_tools import TOOL_REGISTRY
 
-MAX_OBSERVATION_CHARS = 40_000
+MAX_OBSERVATION_CHARS = 30_000
 
 
 class Agent:
