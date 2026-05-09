@@ -66,22 +66,23 @@ class Agent:
     # ------------------------------------------------------------------
 
     def _trim_history(self) -> None:
-        """Обрезает историю, сохраняя первое сообщение сессии и соблюдая лимиты."""
+        """Обрезает историю, сохраняя первое сообщение сессии и соблюдая лимиты токенов."""
         # 1. Лимит по количеству сообщений (сохраняем системное/первое сообщение)
         if len(self.history) > settings.max_history_messages:
             first_msg = self.history[0]
             recent = self.history[-(settings.max_history_messages - 1):]
             self.history = [first_msg] + recent
 
-        # 2. Лимит по объему символов
-        total_chars = sum(len(m["content"]) for m in self.history)
-        log.debug(f"Current history size: {total_chars} chars, {len(self.history)} messages")
+        # 2. Лимит по количеству токенов
+        system_tokens = self.tokenizer.count_tokens(self.system_prompt)
+        total_tokens = system_tokens + self.tokenizer.count_messages_tokens(self.history)
+        log.debug(f"Current history size: {total_tokens} tokens, {len(self.history)} messages")
 
-        if total_chars <= MAX_OBSERVATION_CHARS:
+        if total_tokens <= settings.max_context_tokens:
             return
 
         idx = 1  # Никогда не трогаем первое сообщение (индекс 0)
-        while total_chars > MAX_OBSERVATION_CHARS and idx + 1 < len(self.history):
+        while total_tokens > settings.max_context_tokens and idx + 1 < len(self.history):
             msg_a = self.history[idx]
             msg_b = self.history[idx + 1]
             
@@ -91,8 +92,12 @@ class Agent:
                 and msg_b["role"] == "user"
                 and msg_b["content"].startswith("OBSERVATION:")
             ):
-                pair_size = len(msg_a["content"]) + len(msg_b["content"])
-                total_chars -= pair_size
+                # Считаем токены удаляемой пары (роль + контент для каждого сообщения)
+                pair_tokens = (self.tokenizer.count_tokens(msg_a["role"]) +
+                               self.tokenizer.count_tokens(msg_a["content"]) +
+                               self.tokenizer.count_tokens(msg_b["role"]) +
+                               self.tokenizer.count_tokens(msg_b["content"]))
+                total_tokens -= pair_tokens
                 del self.history[idx : idx + 2]
             else:
                 # Если пара не подходит под паттерн, просто сдвигаемся дальше
