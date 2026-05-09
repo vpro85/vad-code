@@ -21,9 +21,17 @@ def mock_executor():
 
 
 @pytest.fixture
-def agent(mock_llm_client, mock_executor):
+def mock_tokenizer():
+    from unittest.mock import Mock
+    t = Mock()
+    t.count_tokens.return_value = 10
+    t.count_messages_tokens.return_value = 20
+    return t
+
+@pytest.fixture
+def agent(mock_llm_client, mock_executor, mock_tokenizer):
     with patch('vad_code.tools.file_tools.TOOL_REGISTRY', {'test_tool': {'description': 'test'}}):
-        agent = Agent(llm_client=mock_llm_client, executor=mock_executor)
+        agent = Agent(llm_client=mock_llm_client, executor=mock_executor, tokenizer=mock_tokenizer)
     return agent
 
 
