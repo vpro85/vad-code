@@ -7,6 +7,7 @@ from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
+from vad_code.core.memory import ConversationMemory
 from vad_code.tools.file_tools import TOOL_REGISTRY
 
 MAX_OBSERVATION_CHARS = 30_000
@@ -31,6 +32,7 @@ class Agent:
         # Теперь агент не знает о FileTools, он просто использует то, что есть в executor.
         # Системный промпт строится на основе того, что зарегистрировано в TOOL_REGISTRY.
         self.system_prompt = self._build_system_prompt()
+        self.memory = ConversationMemory(tokenizer, self.system_prompt)
 
     # ------------------------------------------------------------------
     # Системный промпт
