@@ -6,6 +6,7 @@ from vad_code.core.agent import Agent
 from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.infrastructure.logger import log
+from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 
 
@@ -16,6 +17,7 @@ async def run() -> None:
     # 1. Создаем инфраструктурные компоненты
     llm_client = LLMClient()
     executor = ToolExecutor()
+    tokenizer = Tokenizer()
 
     # 2. Настраиваем инструменты (теперь это делается на уровне конфигурации приложения)
     file_tools = FileTools()
@@ -25,7 +27,7 @@ async def run() -> None:
             method = getattr(file_tools, name)
             executor.register_tool(name, method, schema=info.get("schema"))
 
-    agent = Agent(llm_client=llm_client, executor=executor)
+    agent = Agent(llm_client=llm_client, executor=executor, tokenizer=tokenizer)
 
     try:
         while True:
