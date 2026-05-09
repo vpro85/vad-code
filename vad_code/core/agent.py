@@ -75,33 +75,47 @@ class Agent:
 
         # 2. Лимит по количеству токенов
         system_tokens = self.tokenizer.count_tokens(self.system_prompt)
-        total_tokens = system_tokens + self.tokenizer.count_messages_tokens(self.history)
+        
+        def get_current_total():
+            return system_tokens + self.tokenizer.count_messages_tokens(self.history)
+
+        total_tokens = get_current_total()
         log.debug(f"Current history size: {total_tokens} tokens, {len(self.history)} messages")
 
         if total_tokens <= settings.max_context_tokens:
             return
 
-        idx = 1  # Никогда не трогаем первое сообщение (индекс 0)
+        # 3. Попытка удалить пары: [assistant (tool call)] + [user (observation)]
+        idx = 1
         while total_tokens > settings.max_context_tokens and idx + 1 < len(self.history):
             msg_a = self.history[idx]
             msg_b = self.history[idx + 1]
             
-            # Пытаемся удалять пары: [assistant (tool call)] + [user (observation)]
             if (
                 msg_a["role"] == "assistant"
                 and msg_b["role"] == "user"
                 and msg_b["content"].startswith("OBSERVATION:")
             ):
-                # Считаем токены удаляемой пары (роль + контент для каждого сообщения)
                 pair_tokens = (self.tokenizer.count_tokens(msg_a["role"]) +
                                self.tokenizer.count_tokens(msg_a["content"]) +
                                self.tokenizer.count_tokens(msg_b["role"]) +
                                self.tokenizer.count_tokens(msg_b["content"]))
-                total_tokens -= pair_tokens
                 del self.history[idx : idx + 2]
+                total_tokens -= pair_tokens
             else:
-                # Если пара не подходит под паттерн, просто сдвигаемся дальше
                 idx += 1
+
+        # 4. Fallback: Если всё еще превышаем лимит, удаляем самые старые сообщения (кроме первого)
+        if total_tokens > settings.max_context_tokens and len(self.history) > 1:
+            while total_tokens > settings.max_context_tokens and len(self.history) > 1:
+                removed_msg = self.history.pop(1)
+                removed_tokens = (self.tokenizer.count_tokens(removed_msg["role"]) +
+                                  self.tokenizer.count_tokens(removed_msg["content"]))
+                total_tokens -= removed_tokens
+                log.info("🗑️ Удалено старое сообщение из истории для экономии контекста.")
+
+        # Финальная синхронизация
+        total_tokens = get_current_total()
 
     def reset_history(self) -> None:
         """Очищает историю сообщений, сохраняя системный промпт."""
