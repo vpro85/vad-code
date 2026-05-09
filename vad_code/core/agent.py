@@ -103,6 +103,11 @@ class Agent:
                 # Если пара не подходит под паттерн, просто сдвигаемся дальше
                 idx += 1
 
+    def reset_history(self) -> None:
+        """Очищает историю сообщений, сохраняя системный промпт."""
+        self.history = []
+        log.info("🧹 История сообщений очищена.")
+
     def _build_messages(self) -> list[dict]:
         return [{"role": "system", "content": self.system_prompt}] + self.history
 

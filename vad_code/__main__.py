@@ -40,6 +40,9 @@ async def run() -> None:
                 continue
             if user_input.lower() in {"exit", "quit"}:
                 break
+            if user_input.lower() == "/reset":
+                agent.reset_history()
+                continue
 
             await agent.handle(user_input)
     finally:
