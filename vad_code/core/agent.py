@@ -27,7 +27,6 @@ class Agent:
         self.llm_client = llm_client
         self.executor = executor
         self.tokenizer = tokenizer
-        self.history: list[dict] = []
 
         # Теперь агент не знает о FileTools, он просто использует то, что есть в executor.
         # Системный промпт строится на основе того, что зарегистрировано в TOOL_REGISTRY.
@@ -67,65 +66,9 @@ class Agent:
     # История
     # ------------------------------------------------------------------
 
-    def _trim_history(self) -> None:
-        """Обрезает историю, сохраняя первое сообщение сессии и соблюдая лимиты токенов."""
-        # 1. Лимит по количеству сообщений (сохраняем системное/первое сообщение)
-        if len(self.history) > settings.max_history_messages:
-            first_msg = self.history[0]
-            recent = self.history[-(settings.max_history_messages - 1):]
-            self.history = [first_msg] + recent
-
-        # 2. Лимит по количеству токенов
-        system_tokens = self.tokenizer.count_tokens(self.system_prompt)
-        
-        def get_current_total():
-            return system_tokens + self.tokenizer.count_messages_tokens(self.history)
-
-        total_tokens = get_current_total()
-        log.debug(f"Current history size: {total_tokens} tokens, {len(self.history)} messages")
-
-        if total_tokens <= settings.max_context_tokens:
-            return
-
-        # 3. Попытка удалить пары: [assistant (tool call)] + [user (observation)]
-        idx = 1
-        while total_tokens > settings.max_context_tokens and idx + 1 < len(self.history):
-            msg_a = self.history[idx]
-            msg_b = self.history[idx + 1]
-            
-            if (
-                msg_a["role"] == "assistant"
-                and msg_b["role"] == "user"
-                and msg_b["content"].startswith("OBSERVATION:")
-            ):
-                pair_tokens = (self.tokenizer.count_tokens(msg_a["role"]) +
-                               self.tokenizer.count_tokens(msg_a["content"]) +
-                               self.tokenizer.count_tokens(msg_b["role"]) +
-                               self.tokenizer.count_tokens(msg_b["content"]))
-                del self.history[idx : idx + 2]
-                total_tokens -= pair_tokens
-            else:
-                idx += 1
-
-        # 4. Fallback: Если всё еще превышаем лимит, удаляем самые старые сообщения (кроме первого)
-        if total_tokens > settings.max_context_tokens and len(self.history) > 1:
-            while total_tokens > settings.max_context_tokens and len(self.history) > 1:
-                removed_msg = self.history.pop(1)
-                removed_tokens = (self.tokenizer.count_tokens(removed_msg["role"]) +
-                                  self.tokenizer.count_tokens(removed_msg["content"]))
-                total_tokens -= removed_tokens
-                log.info("🗑️ Удалено старое сообщение из истории для экономии контекста.")
-
-        # Финальная синхронизация
-        total_tokens = get_current_total()
-
     def reset_history(self) -> None:
-        """Очищает историю сообщений, сохраняя системный промпт."""
-        self.history = []
-        log.info("🧹 История сообщений очищена.")
-
-    def _build_messages(self) -> list[dict]:
-        return [{"role": "system", "content": self.system_prompt}] + self.history
+        """Очищает историю сообщений через объект памяти."""
+        self.memory.reset()
 
     # ------------------------------------------------------------------
     # Утилиты
@@ -171,12 +114,12 @@ class Agent:
 
     async def handle(self, user_input: str) -> None:
         """Обрабатывает один запрос пользователя"""
-        self.history.append({"role": "user", "content": user_input})
+        self.memory.add_message("user", user_input)
 
         for i in range(settings.max_iterations):
-            self._trim_history()
-            ai_response = await self.llm_client.complete(self._build_messages())
-            self.history.append({"role": "assistant", "content": ai_response})
+            self.memory.trim()
+            ai_response = await self.llm_client.complete(self.memory.get_messages())
+            self.memory.add_message("assistant", ai_response)
 
             call_json = self._extract_call(ai_response)
 
@@ -193,10 +136,7 @@ class Agent:
                 log.info(f"📝 Результат: {observation[:120]}{'...' if len(observation) > 120 else ''}")
 
                 # Сохраняем усечённую версию — полный контент не нужен в истории
-                self.history.append({
-                    "role": "user",
-                    "content": f"OBSERVATION: {self._truncate_observation(observation)}",
-                })
+                self.memory.add_message("user", f"OBSERVATION: {self._truncate_observation(observation)}")
             else:
                 log.info(f"\n🤖 AI: {ai_response}\n")
                 return
