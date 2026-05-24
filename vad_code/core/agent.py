@@ -105,8 +105,8 @@ class Agent:
         if len(observation) <= MAX_OBSERVATION_CHARS:
             return observation
         return (
-                observation[:MAX_OBSERVATION_CHARS]
-                + f"\n[... обрезано, всего {len(observation)} символов ...]"
+            observation[:MAX_OBSERVATION_CHARS]
+            + f"\n[... обрезано, всего {len(observation)} символов ...]"
         )
 
     # ------------------------------------------------------------------

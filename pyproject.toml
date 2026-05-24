@@ -20,3 +20,8 @@ dev = [
     "pytest-coverage>=0.0",
     "pytest-mock>=3.15.1",
 ]
+
+[tool.flake8]
+max-line-length = 100
+ignore = ["E203", "W503"]
+exclude = [".venv", "__pycache__", ".git", "htmlcov", ".pytest_cache"]
