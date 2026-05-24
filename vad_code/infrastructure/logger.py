@@ -1,9 +1,11 @@
+"""Модуль логирования."""
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
 
 
 def setup_logger() -> logging.Logger:
+    """Настраивает и возвращает логгер."""
     logger = logging.getLogger("ai_os")
     logger.setLevel(logging.DEBUG)
 
@@ -21,9 +23,9 @@ def setup_logger() -> logging.Logger:
     # Запись всех деталей в файл с ротацией:
     # maxBytes=5*1024*1024 (5 MB), backupCount=5 (храним до 5 старых файлов)
     file_handler = RotatingFileHandler(
-        "agent.log", 
-        maxBytes=5 * 1024 * 1024, 
-        backupCount=5, 
+        "agent.log",
+        maxBytes=5 * 1024 * 1024,
+        backupCount=5,
         encoding="utf-8"
     )
     file_handler.setLevel(logging.DEBUG)

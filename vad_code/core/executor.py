@@ -1,8 +1,7 @@
+"""Модуль исполнителя инструментов."""
+import inspect
 import json
-import traceback
-from typing import Optional, Callable, Any, TypeVar
-
-T = TypeVar('T')
+from typing import Any, Callable, Optional
 
 
 class ToolExecutor:
@@ -20,6 +19,7 @@ class ToolExecutor:
             self.schemas[name] = schema
 
     async def execute(self, call_text: str) -> Optional[str]:
+        """Выполняет зарегистрированный инструмент."""
         try:
             call_data = json.loads(call_text)
             func_name = call_data.get("tool")
@@ -49,7 +49,6 @@ class ToolExecutor:
                 return error_msg
 
             func = self.tools[func_name]
-            import inspect
             if inspect.iscoroutinefunction(func):
                 result = await func(**final_args)
             else:

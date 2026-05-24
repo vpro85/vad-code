@@ -1,5 +1,7 @@
-import httpx
+"""Клиент для взаимодействия с LLM."""
 from typing import Any
+
+import httpx
 
 from vad_code.config import settings
 
@@ -14,7 +16,8 @@ class LLMClient:
         # Создаем один клиент для всех запросов (Connection Pooling)
         self._client = httpx.AsyncClient(timeout=self.timeout)
 
-    async def complete(self, messages: list[dict[str, Any]]) -> str:  # Изменено на async
+    async def complete(self, messages: list[dict[str, Any]]) -> str:
+        """Отправляет запрос к LLM и возвращает ответ."""
         payload = {
             "model": self.model,
             "messages": messages,
@@ -31,8 +34,8 @@ class LLMClient:
             return f"HTTP-ошибка от LM Studio: {e.response.status_code} - {e.response.text}"
         except httpx.RequestError as e:
             return f"Ошибка соединения с LM Studio: {e}"
-        except (KeyError, IndexError) as e:
-            return f"Ошибка: неожиданный формат ответа от LM Studio"
+        except (KeyError, IndexError):
+            return "Ошибка: неожиданный формат ответа от LM Studio"
 
     async def close(self) -> None:
         """Метод для корректного закрытия клиента при завершении работы приложения"""
