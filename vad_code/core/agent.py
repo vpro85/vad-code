@@ -49,7 +49,8 @@ class Agent:
             "ДОСТУПНЫЕ ИНСТРУМЕНТЫ:\n"
             f"{tools_text}\n\n"
             "ПРОТОКОЛ ВЗАИМОДЕЙСТВИЯ:\n"
-            "- Вызов инструмента — СТРОГО отдельный блок JSON, без другого текста на этих строках:\n"
+            "- Вызов инструмента — СТРОГО отдельный блок JSON, "
+            "без другого текста на этих строках:\n"
             "```json\n"
             "{\n"
             '  "tool": "имя_функции",\n'
@@ -95,7 +96,7 @@ class Agent:
     def _get_tool_name(call_json: str) -> str:
         try:
             return str(json.loads(call_json).get("tool", "?"))
-        except Exception:
+        except (json.JSONDecodeError, ValueError):
             return "?"
 
     @staticmethod
@@ -128,12 +129,16 @@ class Agent:
 
                 if observation is None:
                     # Невалидный вызов — считаем финальным ответом
-                    log.info(f"\n🤖 AI: {ai_response}\n")
+                    log.info("\n🤖 AI: %s\n", ai_response)
                     return
 
                 tool_name = self._get_tool_name(call_json)
-                log.info(f"🤖 AI вызывает [{tool_name}]... ({i + 1}/{settings.max_iterations})")
-                log.info(f"📝 Результат: {observation[:120]}{'...' if len(observation) > 120 else ''}")
+                log.info("🤖 AI вызывает [%s]... (%d/%d)", tool_name, i + 1, settings.max_iterations)
+                log.info(
+                    "📝 Результат: %s%s",
+                    observation[:120],
+                    "..." if len(observation) > 120 else "",
+                )
 
                 # Сохраняем усечённую версию — полный контент не нужен в истории
                 self.memory.add_message("user", f"OBSERVATION: {self._truncate_observation(observation)}")

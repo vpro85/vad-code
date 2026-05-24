@@ -11,9 +11,10 @@ from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 
 
 async def run() -> None:
+    """Запускает основной цикл агента."""
     log.info("🚀 AI-OS Bridge (Local Mode) запущен.")
-    log.info(f"Подключение к {settings.lm_studio_url}")
-    log.info(f"Рабочая директория: {settings.project_root}\n")
+    log.info("Подключение к %s", settings.lm_studio_url)
+    log.info("Рабочая директория: %s\n", settings.project_root)
     # 1. Создаем инфраструктурные компоненты
     llm_client = LLMClient()
     executor = ToolExecutor()

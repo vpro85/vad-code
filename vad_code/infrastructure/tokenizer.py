@@ -1,3 +1,6 @@
+"""
+Модуль токенизации текста.
+"""
 from typing import Any
 
 from transformers import AutoTokenizer

@@ -1,3 +1,6 @@
+"""
+Конфигурация приложения.
+"""
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -7,6 +10,8 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
+    """Настройки приложения."""
+
     project_root: str = str(Path(__file__).parent.parent.resolve())
     lm_studio_url: str = "http://127.0.0.1:1234/v1/chat/completions"
     model_name: str = "google/gemma-4-31b"

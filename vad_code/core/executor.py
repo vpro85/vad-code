@@ -38,7 +38,7 @@ class ToolExecutor:
                 try:
                     validated_model = schema.model_validate(args)
                     final_args = validated_model.model_dump()
-                except Exception as e:
+                except (ValueError, TypeError) as e:
                     error_msg = f"Ошибка валидации аргументов: {e}"
                     print(f"[❌ Validation Error] {error_msg}")  # --- ДОБАВЛЕНО ---
                     return error_msg
@@ -59,7 +59,7 @@ class ToolExecutor:
             # -----------------------------
 
             return str(result) if result is not None else "Success"
-        except Exception as e:
+        except (ValueError, TypeError, OSError) as e:
             error_msg = f"Ошибка при выполнении инструмента: {str(e)}"
             print(f"[💥 Critical Error] {error_msg}")  # --- ДОБАВЛЕНО ---
             return error_msg
