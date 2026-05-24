@@ -1,9 +1,15 @@
+"""
+Сервис для работы с файловой системой.
+"""
+import shutil
 from pathlib import Path
 
 from ..config import settings
 
 
 class FileSystemService:
+    """Сервис для безопасной работы с файловой системой."""
+
     def __init__(self) -> None:
         self.root = Path(settings.project_root).resolve()
 
@@ -53,7 +59,6 @@ class FileSystemService:
         """Удаляет файл или директорию."""
         path = self.safe_path(filepath)
         if path.is_dir():
-            import shutil
             shutil.rmtree(path)
         else:
             path.unlink()

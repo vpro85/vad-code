@@ -39,22 +39,22 @@ class ConversationMemory:
 
         # 2. Лимит по количеству токенов
         system_tokens = self.tokenizer.count_tokens(self.system_prompt)
-        
+
         def get_current_total() -> int:
             return system_tokens + self.tokenizer.count_messages_tokens(self.history)
 
         total_tokens = get_current_total()
-        log.warning(f"Current history size: {total_tokens} tokens, {len(self.history)} messages")
+        log.warning("Current history size: %d tokens, %d messages", total_tokens, len(self.history))
 
         if total_tokens <= settings.max_context_tokens:
             return
 
         # 3. Попытка удалить пары: [assistant (tool call)] + [user (observation)]
-        idx = 1
+        idx = 0
         while total_tokens > settings.max_context_tokens and idx + 1 < len(self.history):
             msg_a = self.history[idx]
             msg_b = self.history[idx + 1]
-            
+
             if (
                 msg_a["role"] == "assistant"
                 and msg_b["role"] == "user"
