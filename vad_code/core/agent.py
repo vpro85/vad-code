@@ -86,7 +86,7 @@ class Agent:
             try:
                 data = json.loads(candidate)
                 if isinstance(data, dict) and "tool" in data:
-                    return candidate
+                    return str(candidate)
             except (json.JSONDecodeError, ValueError):
                 continue
         return None
@@ -94,7 +94,7 @@ class Agent:
     @staticmethod
     def _get_tool_name(call_json: str) -> str:
         try:
-            return json.loads(call_json).get("tool", "?")
+            return str(json.loads(call_json).get("tool", "?"))
         except Exception:
             return "?"
 

@@ -1,19 +1,19 @@
 import re
 import shutil
 from pathlib import Path
-from typing import Optional, Type
+from typing import Optional, Type, Callable, Any
 
 from pydantic import BaseModel, Field
 
 from ..infrastructure.file_system import FileSystemService
 
-TOOL_REGISTRY = {}
+TOOL_REGISTRY: dict[str, dict[str, Any]] = {}
 
 
-def register_tool(description: str, schema: Optional[Type[BaseModel]] = None):
+def register_tool(description: str, schema: Optional[Type[BaseModel]] = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Декоратор для автоматической регистрации методов как инструментов AI"""
 
-    def decorator(func):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         TOOL_REGISTRY[func.__name__] = {
             "description": description,
             "schema": schema,

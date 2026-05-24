@@ -1,4 +1,5 @@
 import httpx
+from typing import Any
 
 from vad_code.config import settings
 
@@ -13,7 +14,7 @@ class LLMClient:
         # Создаем один клиент для всех запросов (Connection Pooling)
         self._client = httpx.AsyncClient(timeout=self.timeout)
 
-    async def complete(self, messages: list[dict]) -> str:  # Изменено на async
+    async def complete(self, messages: list[dict[str, Any]]) -> str:  # Изменено на async
         payload = {
             "model": self.model,
             "messages": messages,
@@ -25,7 +26,7 @@ class LLMClient:
             response = await self._client.post(self.url, json=payload)
             response.raise_for_status()
             result = response.json()
-            return result["choices"][0]["message"]["content"]
+            return str(result["choices"][0]["message"]["content"])
         except httpx.HTTPStatusError as e:
             return f"HTTP-ошибка от LM Studio: {e.response.status_code} - {e.response.text}"
         except httpx.RequestError as e:

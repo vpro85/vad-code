@@ -3,7 +3,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 
 
-def setup_logger():
+def setup_logger() -> logging.Logger:
     logger = logging.getLogger("ai_os")
     logger.setLevel(logging.DEBUG)
 

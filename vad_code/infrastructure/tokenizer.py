@@ -1,3 +1,5 @@
+from typing import Any
+
 from transformers import AutoTokenizer
 
 from vad_code.config import settings
@@ -20,7 +22,7 @@ class Tokenizer:
         """
         return len(self.tokenizer.encode(text, add_special_tokens=False))
 
-    def count_messages_tokens(self, messages: list[dict]) -> int:
+    def count_messages_tokens(self, messages: list[dict[str, Any]]) -> int:
         """
         Приблизительно подсчитывает количество токенов в списке сообщений.
         Учитывает роли и содержимое.

@@ -1,6 +1,8 @@
 """
 Модуль управления памятью агента
 """
+from typing import Any
+
 from vad_code.config import settings
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
@@ -12,7 +14,7 @@ class ConversationMemory:
     def __init__(self, tokenizer: Tokenizer, system_prompt: str) -> None:
         self.tokenizer = tokenizer
         self.system_prompt = system_prompt
-        self.history: list[dict] = []
+        self.history: list[dict[str, Any]] = []
 
     def add_message(self, role: str, content: str) -> None:
         """Добавляет сообщение в историю."""
@@ -23,7 +25,7 @@ class ConversationMemory:
         self.history = []
         log.info("🧹 История сообщений очищена.")
 
-    def get_messages(self) -> list[dict]:
+    def get_messages(self) -> list[dict[str, Any]]:
         """Возвращает полный список сообщений для отправки в LLM (включая системный промпт)."""
         return [{"role": "system", "content": self.system_prompt}] + self.history
 
@@ -38,11 +40,11 @@ class ConversationMemory:
         # 2. Лимит по количеству токенов
         system_tokens = self.tokenizer.count_tokens(self.system_prompt)
         
-        def get_current_total():
+        def get_current_total() -> int:
             return system_tokens + self.tokenizer.count_messages_tokens(self.history)
 
         total_tokens = get_current_total()
-        log.debug(f"Current history size: {total_tokens} tokens, {len(self.history)} messages")
+        log.warning(f"Current history size: {total_tokens} tokens, {len(self.history)} messages")
 
         if total_tokens <= settings.max_context_tokens:
             return

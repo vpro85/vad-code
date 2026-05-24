@@ -1,6 +1,8 @@
 import json
 import traceback
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, TypeVar
+
+T = TypeVar('T')
 
 
 class ToolExecutor:
@@ -8,10 +10,10 @@ class ToolExecutor:
 
     def __init__(self) -> None:
         # Храним функции и их схемы отдельно
-        self.tools: dict[str, Callable] = {}
+        self.tools: dict[str, Callable[..., Any]] = {}
         self.schemas: dict[str, Any] = {}
 
-    def register_tool(self, name: str, func: Callable, schema: Any = None) -> None:
+    def register_tool(self, name: str, func: Callable[..., Any], schema: Any = None) -> None:
         """Регистрация инструмента: имя, сама функция и Pydantic-схема."""
         self.tools[name] = func
         if schema:
