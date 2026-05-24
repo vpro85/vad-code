@@ -1,5 +1,4 @@
 import re
-import shutil
 from pathlib import Path
 from typing import Optional, Type, Callable, Any
 
@@ -137,7 +136,6 @@ class FileTools:
     @register_tool("записывает текст в файл (перезаписывает).", schema=WriteFileSchema)
     def write_file(self, path: str, content: str) -> str:
         try:
-            self._create_backup(path)
             self.fs.write_text(path, content)
             self._cache[path] = content  # обновляем кэш
             return f"Файл {path} успешно записан."
@@ -147,7 +145,6 @@ class FileTools:
     @register_tool("заменяет старый текст на новый в файле.", schema=ReplaceInFileSchema)
     def replace_in_file(self, path: str, old_text: str, new_text: str) -> str:
         try:
-            self._create_backup(path)
             self.fs.replace_text(path, old_text, new_text)
             self._cache.pop(path, None)  # инвалидируем кэш после изменения
             return f"Файл {path} успешно обновлен."
@@ -284,13 +281,3 @@ class FileTools:
             return "Ошибка: время выполнения команды истекло (таймаут 60с)."
         except Exception as e:
             return f"Ошибка при выполнении команды: {e}"
-
-    def _create_backup(self, path: str) -> None:
-        """Создает копию файла с расширением .bak перед изменением"""
-        try:
-            p = self.fs.safe_path(path)
-            if p.exists():
-                backup_path = p.with_suffix(p.suffix + ".bak")
-                shutil.copy2(p, backup_path)
-        except Exception:
-            pass
