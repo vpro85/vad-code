@@ -69,16 +69,17 @@ def test_read_file_cache(tools, tmp_path):
     assert "[кэш]" in res2
 
 
-def test_write_file_and_backup(tools, tmp_path):
+def test_write_file_success(tools, tmp_path):
     filename = "write_test.txt"
     content = "New Content"
-    # Создаем файл для проверки бэкапа
+    # Создаем файл для проверки перезаписи
     (tmp_path / filename).write_text("Old Content")
 
     result = tools.write_file(filename, content)
     assert "успешно записан" in result
     assert (tmp_path / filename).read_text() == content
-    assert (tmp_path / f"{filename}.bak").exists()
+    # Бэкапы больше не создаются
+    assert not (tmp_path / f"{filename}.bak").exists()
 
 
 def test_replace_in_file(tools, tmp_path):
