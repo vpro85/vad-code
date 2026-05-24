@@ -48,3 +48,12 @@ htmlcov/
 Thumbs.db
 
 .env
+
+# Docker workspace (рабочая директория агента)
+workspace/
+
+# Docker logs
+agent.log
+
+# Docker volumes (локальные данные LM Studio)
+lm-studio-data/

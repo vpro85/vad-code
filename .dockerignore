@@ -1,0 +1,38 @@
+# Исключаем из Docker-образа ненужные файлы
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+
+# Тесты и кэш
+.pytest_cache/
+htmlcov/
+.coverage
+.mypy_cache/
+
+# Логи
+*.log
+agent.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Рабочая директория
+workspace/
+
+# Git
+.git/
+
+# Окружение
+.env
+
+# Документация (не нужна в образе)
+*.md

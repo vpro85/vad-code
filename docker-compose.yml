@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vad-code-agent
+    stdin_open: true
+    tty: true
+    volumes:
+      # Рабочая директория проекта (персистентность данных)
+      # Агент будет работать только внутри этой папки
+      - ./workspace:/workspace
+    environment:
+      # Важно: в Docker 127.0.0.1 — это сам контейнер.
+      # host.docker.internal — это адрес твоего компьютера (хоста)
+      - PROJECT_ROOT=/workspace
+      - LM_STUDIO_URL=http://host.docker.internal:1234/v1/chat/completions
+      - MODEL_NAME=google/gemma-4-31b
+      - MAX_ITERATIONS=50
+      - MAX_HISTORY_MESSAGES=20
+      - TIMEOUT=1200
+      - MAX_CONTEXT_TOKENS=30000
+    # Настройка для Linux, чтобы контейнер видел хост
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Ограничение ресурсов (безопасность)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
