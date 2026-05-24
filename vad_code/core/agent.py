@@ -141,9 +141,11 @@ class Agent:
                 )
 
                 # Сохраняем усечённую версию — полный контент не нужен в истории
-                self.memory.add_message("user", f"OBSERVATION: {self._truncate_observation(observation)}")
+                self.memory.add_message(
+                    "user", f"OBSERVATION: {self._truncate_observation(observation)}"
+                )
             else:
-                log.info(f"\n🤖 AI: {ai_response}\n")
+                log.info("\n🤖 AI: %s\n", ai_response)
                 return
 
         log.error("\n⚠️ Достигнут лимит итераций.")
