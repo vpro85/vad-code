@@ -84,3 +84,54 @@ class GitTools:
     def git_commit(self, message: str) -> str:
         """Выполняет git commit."""
         return self._run_git(["commit", "-m", message])
+
+    @register_tool(
+        "показывает историю коммитов.",
+        schema=GitLogSchema,
+    )
+    def git_log(self, limit: int = 10) -> str:
+        """Выполняет git log."""
+        return self._run_git(["log", f"-n {limit}", "--oneline"])
+
+    @register_tool(
+        "показывает список веток или создает новую.",
+        schema=GitBranchSchema,
+    )
+    def git_branch(self, name: Optional[str] = None) -> str:
+        """Выполняет git branch."""
+        args = ["branch"]
+        if name:
+            args.append(name)
+        return self._run_git(args)
+
+    @register_tool(
+        "переключает ветку или восстанавливает файл из индекса.",
+        schema=GitCheckoutSchema,
+    )
+    def git_checkout(self, target: str) -> str:
+        """Выполняет git checkout."""
+        return self._run_git(["checkout", target])
+
+    @register_tool(
+        "показывает детали конкретного коммита.",
+        schema=GitShowSchema,
+    )
+    def git_show(self, commit_hash: str) -> str:
+        """Выполняет git show."""
+        return self._run_git(["show", commit_hash])
+
+    @register_tool(
+        "управляет временным хранилищем изменений (stash).",
+        schema=GitStashSchema,
+    )
+    def git_stash(self, action: str) -> str:
+        """Выполняет git stash."""
+        return self._run_git(["stash", action])
+
+    @register_tool(
+        "сливает указанную ветку в текущую.",
+        schema=GitMergeSchema,
+    )
+    def git_merge(self, branch: str) -> str:
+        """Выполняет git merge."""
+        return self._run_git(["merge", branch])
