@@ -77,29 +77,32 @@ class Agent:
 
     @staticmethod
     def _extract_call(ai_response: str) -> str | None:
-        """Извлекает JSON-вызов инструмента из ответа AI."""
-
+        """Извлекает ПОСЛЕДНИЙ валидный JSON-вызов инструмента из ответа AI."""
+        candidates = []
         # 1. Ищем в блоках ```json ... ```
-        matches = re.findall(r"```json\s*(.*?)\s*```", ai_response, re.DOTALL)
-        if matches:
-            for candidate in reversed(matches):
-                if Agent._try_parse_json(candidate):
-                    return candidate
+        json_blocks = re.finditer(r"```json\s*(.*?)\s*```", ai_response, re.DOTALL)
+        for match in json_blocks:
+            content = match.group(1)
+            parsed = Agent._try_parse_json(content)
+            if parsed:
+                candidates.append(content)
         # 2. Ищем в любых блоках ``` ... ```
-        matches = re.findall(r"```\s*(.*?)\s*```", ai_response, re.DOTALL)
-        if matches:
-            for candidate in reversed(matches):
-                if Agent._try_parse_json(candidate):
-                    return candidate
+        if not candidates:
+            code_blocks = re.finditer(r"```\s*(.*?)\s*```", ai_response, re.DOTALL)
+            for match in code_blocks:
+                content = match.group(1)
+                parsed = Agent._try_parse_json(content)
+                if parsed:
+                    candidates.append(content)
         # 3. Пытаемся найти JSON-объект в тексте
-        # Ищем первое вхождение '{' и последнее '}'
-        start = ai_response.find('{')
-        end = ai_response.rfind('}')
-        if start != -1 and end != -1 and start < end:
-            candidate = ai_response[start:end + 1]
-            if Agent._try_parse_json(candidate):
-                return candidate
-        return None
+        if not candidates:
+            start = ai_response.find('{')
+            end = ai_response.rfind('}')
+            if start != -1 and end != -1 and start < end:
+                candidate = ai_response[start:end + 1]
+                if Agent._try_parse_json(candidate):
+                    candidates.append(candidate)
+        return candidates[-1] if candidates else None
 
     @staticmethod
     def _try_parse_json(text: str) -> bool:
@@ -108,7 +111,14 @@ class Agent:
             data = json.loads(text)
             return isinstance(data, dict) and "tool" in data
         except (json.JSONDecodeError, ValueError):
-            return False
+            # Пытаемся исправить распространенные ошибки JSON от LLM
+            # Например, неэкранированные переносы строк внутри строк
+            try:
+                fixed_text = re.sub(r'(?<!\\)\n', '\\n', text)
+                data = json.loads(fixed_text)
+                return isinstance(data, dict) and "tool" in data
+            except (json.JSONDecodeError, ValueError):
+                return False
 
     @staticmethod
     def _get_tool_name(call_json: str) -> str:
@@ -123,8 +133,8 @@ class Agent:
         if len(observation) <= MAX_OBSERVATION_CHARS:
             return observation
         return (
-            observation[:MAX_OBSERVATION_CHARS]
-            + f"\n[... обрезано, всего {len(observation)} символов ...]"
+                observation[:MAX_OBSERVATION_CHARS]
+                + f"\n[... обрезано, всего {len(observation)} символов ...]"
         )
 
     # ------------------------------------------------------------------
