@@ -1,5 +1,5 @@
 """Модуль агента — управляет историей, системным промптом и циклом вызовов инструментов"""
-import json
+import json5
 import re
 
 from vad_code.config import settings
@@ -108,23 +108,23 @@ class Agent:
     def _try_parse_json(text: str) -> bool:
         """Пытается распарсить текст как JSON и проверить наличие ключа 'tool'."""
         try:
-            data = json.loads(text)
+            data = json5.loads(text)
             return isinstance(data, dict) and "tool" in data
-        except (json.JSONDecodeError, ValueError):
+        except (json5.JSONDecodeError, ValueError):
             # Пытаемся исправить распространенные ошибки JSON от LLM
             # Например, неэкранированные переносы строк внутри строк
             try:
                 fixed_text = re.sub(r'(?<!\\)\n', '\\n', text)
-                data = json.loads(fixed_text)
+                data = json5.loads(fixed_text)
                 return isinstance(data, dict) and "tool" in data
-            except (json.JSONDecodeError, ValueError):
+            except (json5.JSONDecodeError, ValueError):
                 return False
 
     @staticmethod
     def _get_tool_name(call_json: str) -> str:
         try:
-            return str(json.loads(call_json).get("tool", "?"))
-        except (json.JSONDecodeError, ValueError):
+            return str(json5.loads(call_json).get("tool", "?"))
+        except (json5.JSONDecodeError, ValueError):
             return "?"
 
     @staticmethod

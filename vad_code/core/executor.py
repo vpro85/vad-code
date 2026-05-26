@@ -1,6 +1,6 @@
 """Модуль исполнителя инструментов."""
 import inspect
-import json
+import json5
 from typing import Any, Callable, Optional
 
 from vad_code.infrastructure.logger import log
@@ -23,7 +23,7 @@ class ToolExecutor:
     async def execute(self, call_text: str) -> Optional[str]:
         """Выполняет зарегистрированный инструмент."""
         try:
-            call_data = json.loads(call_text)
+            call_data = json5.loads(call_text)
             func_name = call_data.get("tool")
             args = call_data.get("arguments", {})
 
