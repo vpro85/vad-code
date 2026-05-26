@@ -3,6 +3,8 @@ import inspect
 import json
 from typing import Any, Callable, Optional
 
+from vad_code.infrastructure.logger import log
+
 
 class ToolExecutor:
     """Класс, отвечающий исключительно за выполнение зарегистрированных инструментов."""
@@ -29,7 +31,7 @@ class ToolExecutor:
                 return "Ошибка: В JSON не указано поле 'tool'."
 
             # --- ДОБАВЛЕНО: Лог начала вызова ---
-            print(f"\n[🛠️ Tool Call] {func_name}({args})")
+            log.debug("🛠️ Tool Call: %s(%s)", func_name, args)
             # ------------------------------------
 
             final_args = args
@@ -40,12 +42,12 @@ class ToolExecutor:
                     final_args = validated_model.model_dump()
                 except (ValueError, TypeError) as e:
                     error_msg = f"Ошибка валидации аргументов: {e}"
-                    print(f"[❌ Validation Error] {error_msg}")  # --- ДОБАВЛЕНО ---
+                    log.error("❌ Validation Error: %s", error_msg)
                     return error_msg
 
             if func_name not in self.tools:
                 error_msg = f"Ошибка: Инструмент '{func_name}' не зарегистрирован."
-                print(f"[❌ Tool Not Found] {error_msg}")  # --- ДОБАВЛЕНО ---
+                log.error("❌ Tool Not Found: %s", error_msg)
                 return error_msg
 
             func = self.tools[func_name]
@@ -55,11 +57,11 @@ class ToolExecutor:
                 result = func(**final_args)
 
             # --- ДОБАВЛЕНО: Лог успеха ---
-            print(f"[✅ Success] {func_name} completed.")
+            log.debug("✅ Success: %s completed.", func_name)
             # -----------------------------
 
             return str(result) if result is not None else "Success"
         except (ValueError, TypeError, OSError) as e:
             error_msg = f"Ошибка при выполнении инструмента: {str(e)}"
-            print(f"[💥 Critical Error] {error_msg}")  # --- ДОБАВЛЕНО ---
+            log.error("💥 Critical Error: %s", error_msg)
             return error_msg

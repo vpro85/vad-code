@@ -7,6 +7,11 @@ from logging.handlers import RotatingFileHandler
 def setup_logger() -> logging.Logger:
     """Настраивает и возвращает логгер."""
     logger = logging.getLogger("ai_os")
+    
+    # Предотвращаем дублирование хендлеров при повторных вызовах
+    if logger.handlers:
+        return logger
+
     logger.setLevel(logging.DEBUG)
 
     # Формат: Время | Уровень | Сообщение

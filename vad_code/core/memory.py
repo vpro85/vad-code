@@ -44,7 +44,7 @@ class ConversationMemory:
             return system_tokens + self.tokenizer.count_messages_tokens(self.history)
 
         total_tokens = get_current_total()
-        log.warning("Current history size: %d tokens, %d messages", total_tokens, len(self.history))
+        log.debug("Current history size: %d tokens, %d messages", total_tokens, len(self.history))
 
         if total_tokens <= settings.max_context_tokens:
             return
