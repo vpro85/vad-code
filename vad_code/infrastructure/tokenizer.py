@@ -17,7 +17,7 @@ class Tokenizer:
     def __init__(self) -> None:
         # Загружаем токенизатор для указанной модели
         # use_fast=True используется для ускорения работы
-        self.tokenizer = AutoTokenizer.from_pretrained(settings.model_name, use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(settings.llm_model, use_fast=True)
 
     def count_tokens(self, text: str) -> int:
         """

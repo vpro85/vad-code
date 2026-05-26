@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",  # Игнорируем лишние переменные в .env
     )
 
     # Корневая директория проекта (переопределяется в Docker)
@@ -23,8 +24,12 @@ class Settings(BaseSettings):
     )
 
     # LLM настройки
-    lm_studio_url: str = "http://127.0.0.1:1234/v1/chat/completions"
-    model_name: str = "google/gemma-4-31b"
+    llm_provider: str = "openai"  # openai, ollama, anthropic
+    llm_url: str = "http://127.0.0.1:1234/v1/chat/completions"
+    llm_model: str = "google/gemma-4-31b"
+    llm_api_key: str | None = None
+    llm_temperature: float = 0.1
+    llm_max_tokens: int = 4096
 
     # Лимиты
     max_iterations: int = 50

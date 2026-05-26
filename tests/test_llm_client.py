@@ -43,7 +43,7 @@ async def test_llm_client_complete_http_error(mocker):
     client = LLMClient()
     result = await client.complete([{"role": "user", "content": "Hi"}])
     
-    assert "HTTP-ошибка от LM Studio: 500" in result
+    assert "HTTP-ошибка: 500" in result
     await client.close()
 
 @pytest.mark.asyncio
@@ -53,7 +53,7 @@ async def test_llm_client_complete_request_error(mocker):
     client = LLMClient()
     result = await client.complete([{"role": "user", "content": "Hi"}])
     
-    assert "Ошибка соединения с LM Studio: Connection failed" in result
+    assert "Ошибка соединения: Connection failed" in result
     await client.close()
 
 @pytest.mark.asyncio
@@ -69,7 +69,7 @@ async def test_llm_client_complete_format_error(mocker):
     client = LLMClient()
     result = await client.complete([{"role": "user", "content": "Hi"}])
     
-    assert "Ошибка: неожиданный формат ответа от LM Studio" in result
+    assert "Ошибка: неожиданный формат ответа" in result
     await client.close()
 
 @pytest.mark.asyncio

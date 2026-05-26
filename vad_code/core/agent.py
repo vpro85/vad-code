@@ -4,7 +4,7 @@ import re
 
 from vad_code.config import settings
 from vad_code.core.executor import ToolExecutor
-from vad_code.infrastructure.llm_client import LLMClient
+from vad_code.infrastructure.llm_providers import BaseLLMProvider
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.core.memory import ConversationMemory
@@ -16,11 +16,11 @@ MAX_OBSERVATION_CHARS = 30_000
 class Agent:
     """Агент: управляет историей, формирует промпт и запускает цикл выполнения задач."""
 
-    def __init__(self, llm_client: LLMClient, executor: ToolExecutor, tokenizer: Tokenizer) -> None:
+    def __init__(self, llm_client: BaseLLMProvider, executor: ToolExecutor, tokenizer: Tokenizer) -> None:
         """
         Инициализация агента через внедрение зависимостей.
 
-        :param llm_client: Клиент для взаимодействия с LLM.
+        :param llm_client: Провайдер для взаимодействия с LLM.
         :param executor: Объект, содержащий зарегистрированные инструменты.
         :param tokenizer: Токенизатор для подсчета длины контекста.
         """

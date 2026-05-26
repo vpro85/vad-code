@@ -10,8 +10,8 @@ class LLMClient:
     """Отвечает только за сетевое взаимодействие с LLM"""
 
     def __init__(self) -> None:
-        self.url = settings.lm_studio_url
-        self.model = settings.model_name
+        self.url = settings.llm_url
+        self.model = settings.llm_model
         self.timeout = settings.timeout
         # Создаем один клиент для всех запросов (Connection Pooling)
         self._client = httpx.AsyncClient(timeout=self.timeout)
@@ -31,9 +31,9 @@ class LLMClient:
             result = response.json()
             return str(result["choices"][0]["message"]["content"])
         except httpx.HTTPStatusError as e:
-            return f"HTTP-ошибка от LM Studio: {e.response.status_code} - {e.response.text}"
+            return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
         except httpx.RequestError as e:
-            return f"Ошибка соединения с LM Studio: {e}"
+            return f"Ошибка соединения: {e}"
         except (KeyError, IndexError):
             return "Ошибка: неожиданный формат ответа от LM Studio"
 
