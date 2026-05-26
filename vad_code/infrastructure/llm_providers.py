@@ -73,7 +73,57 @@ class BaseLLMProvider(abc.ABC):
         return "Ошибка: неизвестная проблема"
 
 
-class OpenAICompatibleProvider(BaseLLMProvider):
+class BaseHTTPProvider(BaseLLMProvider):
+    """
+    Базовый класс для провайдеров, использующих HTTP.
+    Устраняет дублирование кода инициализации клиента и обработки ошибок.
+    """
+
+    def __init__(self, url: str, timeout: int = 1200) -> None:
+        self.url = url
+        self.timeout = timeout
+        self._client = httpx.AsyncClient(timeout=self.timeout)
+
+    async def close(self) -> None:
+        """Закрывает клиент."""
+        await self._client.aclose()
+
+    async def complete(self, messages: list[dict[str, Any]]) -> str:
+        """
+        Универсальный метод выполнения запроса.
+        Использует шаблонный метод: вызывает специфичные методы потомков.
+        """
+        try:
+            url = self._get_request_url()
+            payload = self._build_payload(messages)
+            response = await self._client.post(url, json=payload)
+            response.raise_for_status()
+            result = response.json()
+            return self._parse_response(result)
+        except httpx.HTTPStatusError as e:
+            return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
+        except httpx.RequestError as e:
+            return f"Ошибка соединения: {e}"
+        except (KeyError, IndexError):
+            return "Ошибка: неожиданный формат ответа"
+
+    @abc.abstractmethod
+    def _get_request_url(self) -> str:
+        """Возвращает URL для запроса."""
+        ...
+
+    @abc.abstractmethod
+    def _build_payload(self, messages: list[dict[str, Any]]) -> dict:
+        """Формирует тело запроса."""
+        ...
+
+    @abc.abstractmethod
+    def _parse_response(self, result: dict) -> str:
+        """Парсит ответ от API."""
+        ...
+
+
+class OpenAICompatibleProvider(BaseHTTPProvider):
     """
     Провайдер для OpenAI-compatible API.
     Поддерживает: OpenAI, LM Studio, AnyLocal, и другие совместимые серверы.
@@ -88,43 +138,30 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         temperature: float = 0.1,
         max_tokens: int = 4096,
     ) -> None:
-        self.url = url
+        super().__init__(url, timeout)
         self.model = model
-        self.timeout = timeout
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self._client = httpx.AsyncClient(timeout=self.timeout)
 
         if api_key:
             self._client.headers["Authorization"] = f"Bearer {api_key}"
 
-    async def complete(self, messages: list[dict[str, Any]]) -> str:
-        """Отправляет запрос к OpenAI-compatible API."""
-        payload = {
+    def _get_request_url(self) -> str:
+        return self.url
+
+    def _build_payload(self, messages: list[dict[str, Any]]) -> dict:
+        return {
             "model": self.model,
             "messages": messages,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
         }
 
-        try:
-            response = await self._client.post(self.url, json=payload)
-            response.raise_for_status()
-            result = response.json()
-            return str(result["choices"][0]["message"]["content"])
-        except httpx.HTTPStatusError as e:
-            return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
-        except httpx.RequestError as e:
-            return f"Ошибка соединения: {e}"
-        except (KeyError, IndexError):
-            return "Ошибка: неожиданный формат ответа"
-
-    async def close(self) -> None:
-        """Закрывает клиент."""
-        await self._client.aclose()
+    def _parse_response(self, result: dict) -> str:
+        return str(result["choices"][0]["message"]["content"])
 
 
-class OllamaProvider(BaseLLMProvider):
+class OllamaProvider(BaseHTTPProvider):
     """
     Провайдер для Ollama.
     Использует локальный Ollama-сервер.
@@ -138,16 +175,16 @@ class OllamaProvider(BaseLLMProvider):
         temperature: float = 0.1,
         max_tokens: int = 4096,
     ) -> None:
-        self.url = url.rstrip("/")
+        super().__init__(url.rstrip("/"), timeout)
         self.model = model
-        self.timeout = timeout
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self._client = httpx.AsyncClient(timeout=self.timeout)
 
-    async def complete(self, messages: list[dict[str, Any]]) -> str:
-        """Отправляет запрос к Ollama."""
-        payload = {
+    def _get_request_url(self) -> str:
+        return f"{self.url}/api/chat"
+
+    def _build_payload(self, messages: list[dict[str, Any]]) -> dict:
+        return {
             "model": self.model,
             "messages": messages,
             "stream": False,
@@ -157,26 +194,11 @@ class OllamaProvider(BaseLLMProvider):
             },
         }
 
-        try:
-            response = await self._client.post(
-                f"{self.url}/api/chat", json=payload
-            )
-            response.raise_for_status()
-            result = response.json()
-            return str(result["message"]["content"])
-        except httpx.HTTPStatusError as e:
-            return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
-        except httpx.RequestError as e:
-            return f"Ошибка соединения: {e}"
-        except (KeyError, IndexError):
-            return "Ошибка: неожиданный формат ответа"
-
-    async def close(self) -> None:
-        """Закрывает клиент."""
-        await self._client.aclose()
+    def _parse_response(self, result: dict) -> str:
+        return str(result["message"]["content"])
 
 
-class AnthropicProvider(BaseLLMProvider):
+class AnthropicProvider(BaseHTTPProvider):
     """
     Провайдер для Anthropic (Claude).
     Использует API Anthropic.
@@ -191,19 +213,19 @@ class AnthropicProvider(BaseLLMProvider):
         temperature: float = 0.1,
         max_tokens: int = 4096,
     ) -> None:
-        self.url = url
+        super().__init__(url, timeout)
         self.model = model
-        self.timeout = timeout
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self._client = httpx.AsyncClient(timeout=self.timeout)
 
         if api_key:
             self._client.headers["x-api-key"] = api_key
             self._client.headers["anthropic-version"] = "2023-06-01"
 
-    async def complete(self, messages: list[dict[str, Any]]) -> str:
-        """Отправляет запрос к Anthropic."""
+    def _get_request_url(self) -> str:
+        return self.url
+
+    def _build_payload(self, messages: list[dict[str, Any]]) -> dict:
         # Anthropic требует отдельный system-промпт
         system_prompt = ""
         user_messages = []
@@ -224,21 +246,10 @@ class AnthropicProvider(BaseLLMProvider):
         if system_prompt:
             payload["system"] = system_prompt
 
-        try:
-            response = await self._client.post(self.url, json=payload)
-            response.raise_for_status()
-            result = response.json()
-            return str(result["content"][0]["text"])
-        except httpx.HTTPStatusError as e:
-            return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
-        except httpx.RequestError as e:
-            return f"Ошибка соединения: {e}"
-        except (KeyError, IndexError):
-            return "Ошибка: неожиданный формат ответа"
+        return payload
 
-    async def close(self) -> None:
-        """Закрывает клиент."""
-        await self._client.aclose()
+    def _parse_response(self, result: dict) -> str:
+        return str(result["content"][0]["text"])
 
 
 def create_provider(
