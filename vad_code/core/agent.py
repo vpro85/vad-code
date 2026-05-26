@@ -39,6 +39,14 @@ class Agent:
         self.system_prompt = self._build_system_prompt()
         self.memory = ConversationMemory(tokenizer, self.system_prompt)
 
+        # Статистика сессии
+        self.session_stats = {
+            "tool_calls": 0,
+            "total_tokens": 0,
+            "errors": 0,
+            "iterations": 0,
+        }
+
     # ------------------------------------------------------------------
     # Системный промпт
     # ------------------------------------------------------------------
@@ -147,11 +155,29 @@ class Agent:
     # Основной цикл
     # ------------------------------------------------------------------
 
+    def print_stats(self) -> None:
+        """Выводит статистику текущей сессии."""
+        stats = self.session_stats
+        log.info(
+            "\n📊 Статистика сессии:\n"
+            "  Вызовов инструментов: %d\n"
+            "  Всего токенов: %d\n"
+            "  Ошибок: %d\n"
+            "  Итераций: %d\n"
+            "  Сообщений в памяти: %d\n",
+            stats["tool_calls"],
+            stats["total_tokens"],
+            stats["errors"],
+            stats["iterations"],
+            len(self.memory.history),
+        )
+
     async def handle(self, user_input: str) -> None:
         """Обрабатывает один запрос пользователя"""
         self.memory.add_message("user", user_input)
 
         for i in range(settings.max_iterations):
+            self.session_stats["iterations"] += 1
             self.memory.trim()
             ai_response = await self.llm_client.complete_with_retry(
                 self.memory.get_messages(),
@@ -160,13 +186,19 @@ class Agent:
             )
             self.memory.add_message("assistant", ai_response)
 
+            # Подсчет токенов
+            current_tokens = self.tokenizer.count_tokens(ai_response)
+            self.session_stats["total_tokens"] += current_tokens
+
             call_json = self._extract_call(ai_response)
 
             if call_json:
+                self.session_stats["tool_calls"] += 1
                 observation = await self.executor.execute(call_json)
 
                 if observation is None:
                     # Невалидный вызов — считаем финальным ответом
+                    self.session_stats["errors"] += 1
                     log.info("\n🤖 AI: %s\n", ai_response)
                     return
 

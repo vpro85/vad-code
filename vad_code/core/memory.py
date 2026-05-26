@@ -77,3 +77,12 @@ class ConversationMemory:
                                   self.tokenizer.count_tokens(removed_msg["content"]))
                 total_tokens -= removed_tokens
                 log.info("🗑️ Удалено старое сообщение из истории для экономии контекста.")
+
+    def to_text(self) -> str:
+        """Возвращает текстовое представление истории для сохранения в файл."""
+        lines = []
+        for msg in self.history:
+            role = msg["role"].upper()
+            content = msg["content"]
+            lines.append(f"[{role}] {content}")
+        return "\n---\n".join(lines)
