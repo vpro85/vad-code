@@ -11,6 +11,52 @@ from pydantic import BaseModel, Field
 
 from ..infrastructure.file_system import FileSystemService
 
+
+class SimpleLRUCache:
+    """Простой LRU-кэш с ограничением по количеству элементов."""
+
+    def __init__(self, max_size: int = 50) -> None:
+        self.cache: dict[str, str] = {}
+        self.max_size = max_size
+        self._order: list[str] = []  # Для отслеживания порядка доступа
+
+    def get(self, key: str) -> tuple[bool, str | None]:
+        """Получить значение. Возвращает (found, value)."""
+        if key in self.cache:
+            self._move_to_end(key)
+            return True, self.cache[key]
+        return False, None
+
+    def put(self, key: str, value: str) -> None:
+        """Добавить значение."""
+        if key in self.cache:
+            self._move_to_end(key)
+        else:
+            if len(self.cache) >= self.max_size:
+                self._evict()
+        self.cache[key] = value
+        if key not in self._order:
+            self._order.append(key)
+
+    def pop(self, key: str) -> None:
+        """Удалить элемент."""
+        self.cache.pop(key, None)
+        if key in self._order:
+            self._order.remove(key)
+
+    def _move_to_end(self, key: str) -> None:
+        """Переместить ключ в конец списка (самый свежий)."""
+        if key in self._order:
+            self._order.remove(key)
+            self._order.append(key)
+
+    def _evict(self) -> None:
+        """Удалить самый старый элемент."""
+        if self._order:
+            oldest_key = self._order.pop(0)
+            self.cache.pop(oldest_key, None)
+
+
 TOOL_REGISTRY: dict[str, dict[str, Any]] = {}
 
 # Константы для инструментов
@@ -148,7 +194,7 @@ class FileTools:
 
     def __init__(self) -> None:
         self.fs = FileSystemService()
-        self._cache: dict[str, str] = {}
+        self._cache = SimpleLRUCache(max_size=50)
 
     @register_tool(
         "возвращает плоский список файлов в папке (без рекурсии).",
@@ -197,13 +243,14 @@ class FileTools:
     def read_file(self, path: str) -> str:
         """Читает содержимое файла."""
         try:
-            if path in self._cache:
+            found, cached_content = self._cache.get(path)
+            if found:
                 return (
                     f"[кэш] Содержимое файла {path}:\n---\n"
-                    f"{self._cache[path]}\n---"
+                    f"{cached_content}\n---"
                 )
             content = self.fs.read_text(path)
-            self._cache[path] = content
+            self._cache.put(path, content)
             return f"Содержимое файла {path}:\n---\n{content}\n---"
         except (OSError, ValueError) as e:
             return f"Ошибка при чтении файла: {e}"
@@ -213,7 +260,7 @@ class FileTools:
         """Записывает текст в файл."""
         try:
             self.fs.write_text(path, content)
-            self._cache[path] = content  # обновляем кэш
+            self._cache.put(path, content)  # обновляем кэш
             return f"Файл {path} успешно записан."
         except (OSError, ValueError) as e:
             return f"Ошибка при записи файла {path}: {e}"
@@ -225,7 +272,7 @@ class FileTools:
         """Заменяет текст в файле."""
         try:
             self.fs.replace_text(path, old_text, new_text)
-            self._cache.pop(path, None)  # инвалидируем кэш после изменения
+            self._cache.pop(path)  # инвалидируем кэш после изменения
             return f"Файл {path} успешно обновлен."
         except (OSError, ValueError) as e:
             return f"Ошибка при обновлении файла {path}: {e}"
@@ -315,7 +362,7 @@ class FileTools:
         """Перемещает файл или директорию."""
         try:
             self.fs.move_file(src, dst)
-            self._cache.pop(src, None)
+            self._cache.pop(src)
             return f"Объект {src} успешно перемещен в {dst}."
         except (OSError, ValueError) as e:
             return f"Ошибка при перемещении {src} -> {dst}: {e}"
@@ -325,7 +372,7 @@ class FileTools:
         """Удаляет файл или директорию."""
         try:
             self.fs.delete_file(path)
-            self._cache.pop(path, None)
+            self._cache.pop(path)
             return f"Объект {path} успешно удален."
         except (OSError, ValueError) as e:
             return f"Ошибка при удалении {path}: {e}"

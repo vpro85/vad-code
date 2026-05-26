@@ -289,3 +289,91 @@ def test_count_lines_dir(tools, tmp_path):
     result = tools.count_lines(dir_name)
     assert "Количество строк" in result
     assert "5" in result
+
+
+def test_lru_cache_eviction(tools, tmp_path):
+    """Проверяет, что LRU-кэш ограничивает размер и удаляет старые элементы."""
+    from vad_code.tools.file_tools import SimpleLRUCache
+
+    # Создаем кэш с лимитом 3 элемента
+    cache = SimpleLRUCache(max_size=3)
+
+    # Добавляем 3 элемента
+    cache.put("file1.txt", "content1")
+    cache.put("file2.txt", "content2")
+    cache.put("file3.txt", "content3")
+
+    # Все 3 элемента должны быть в кэше
+    found, val = cache.get("file1.txt")
+    assert found and val == "content1"
+    found, val = cache.get("file2.txt")
+    assert found and val == "content2"
+    found, val = cache.get("file3.txt")
+    assert found and val == "content3"
+
+    # Добавляем 4-й элемент — самый старый (file1.txt) должен быть удален
+    cache.put("file4.txt", "content4")
+
+    # file1.txt больше не в кэше (был самым старым)
+    found, val = cache.get("file1.txt")
+    assert not found
+
+    # Остальные элементы на месте
+    found, val = cache.get("file2.txt")
+    assert found and val == "content2"
+    found, val = cache.get("file3.txt")
+    assert found and val == "content3"
+    found, val = cache.get("file4.txt")
+    assert found and val == "content4"
+
+
+def test_lru_cache_access_updates_order(tools, tmp_path):
+    """Проверяет, что доступ к элементу обновляет его порядок (LRU)."""
+    from vad_code.tools.file_tools import SimpleLRUCache
+
+    cache = SimpleLRUCache(max_size=3)
+
+    # Добавляем 3 элемента
+    cache.put("file1.txt", "content1")
+    cache.put("file2.txt", "content2")
+    cache.put("file3.txt", "content3")
+
+    # Доступ к file1.txt — он становится самым свежим
+    cache.get("file1.txt")
+
+    # Добавляем 4-й элемент — теперь file2.txt должен быть удален (самый старый)
+    cache.put("file4.txt", "content4")
+
+    # file2.txt удален
+    found, _ = cache.get("file2.txt")
+    assert not found
+
+    # file1.txt остался (был недавно доступен)
+    found, val = cache.get("file1.txt")
+    assert found and val == "content1"
+
+
+def test_file_tools_cache_integration(tools, tmp_path):
+    """Интеграционный тест: проверяет, что кэш FileTools не растет бесконечно."""
+    # Создаем 60 файлов (больше, чем лимит кэша в 50)
+    for i in range(60):
+        filename = f"file_{i}.txt"
+        content = f"content_{i}"
+        (tmp_path / filename).write_text(content)
+
+    # Читаем все файлы — кэш должен содержать только последние 50
+    for i in range(60):
+        tools.read_file(f"file_{i}.txt")
+
+    # Проверяем, что кэш не содержит больше 50 элементов
+    assert len(tools._cache.cache) <= 50
+
+    # Первые 10 файлов должны быть вытеснены из кэша
+    for i in range(10):
+        found, _ = tools._cache.get(f"file_{i}.txt")
+        assert not found, f"file_{i}.txt должен быть вытеснен из кэша"
+
+    # Последние файлы должны быть в кэше
+    for i in range(40, 60):
+        found, val = tools._cache.get(f"file_{i}.txt")
+        assert found and val == f"content_{i}"

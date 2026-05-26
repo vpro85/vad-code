@@ -110,21 +110,21 @@ class Agent:
         try:
             data = json5.loads(text)
             return isinstance(data, dict) and "tool" in data
-        except (json5.JSONDecodeError, ValueError):
+        except ValueError:
             # Пытаемся исправить распространенные ошибки JSON от LLM
             # Например, неэкранированные переносы строк внутри строк
             try:
                 fixed_text = re.sub(r'(?<!\\)\n', '\\n', text)
                 data = json5.loads(fixed_text)
                 return isinstance(data, dict) and "tool" in data
-            except (json5.JSONDecodeError, ValueError):
+            except ValueError:
                 return False
 
     @staticmethod
     def _get_tool_name(call_json: str) -> str:
         try:
             return str(json5.loads(call_json).get("tool", "?"))
-        except (json5.JSONDecodeError, ValueError):
+        except ValueError:
             return "?"
 
     @staticmethod
