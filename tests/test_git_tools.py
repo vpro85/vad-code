@@ -138,3 +138,29 @@ def test_git_merge(tools, git_repo):
     merge_res = tools.git_merge("feat")
     assert "Merge made by the 'recursive' strategy" in merge_res or "Fast-forward" in merge_res
     assert (git_repo / "f2.txt").exists()
+
+
+def test_git_blame(tools, git_repo):
+    file = git_repo / "test.txt"
+    file.write_text("line 1\nline 2")
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "blame test"], cwd=str(git_repo), capture_output=True)
+
+    blame_res = tools.git_blame("test.txt")
+    assert "Ошибка Git" not in blame_res
+    assert "blame test" in blame_res
+
+
+def test_git_log_file(tools, git_repo):
+    file = git_repo / "test.txt"
+    file.write_text("v1")
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "commit 1"], cwd=str(git_repo), capture_output=True)
+    file.write_text("v2")
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "commit 2"], cwd=str(git_repo), capture_output=True)
+
+    log_res = tools.git_log_file("test.txt")
+    assert "Ошибка Git" not in log_res
+    assert "commit 1" in log_res
+    assert "commit 2" in log_res

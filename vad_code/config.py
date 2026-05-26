@@ -5,11 +5,16 @@
 import os
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Настройки приложения."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
     # Корневая директория проекта (переопределяется в Docker)
     project_root: str = os.getenv(
@@ -26,11 +31,6 @@ class Settings(BaseSettings):
     max_history_messages: int = 20
     timeout: int = 1200
     max_context_tokens: int = 30000
-
-    class Config:
-        # Позволяет переопределять настройки через переменные окружения
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 settings = Settings()

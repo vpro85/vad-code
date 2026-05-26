@@ -63,6 +63,17 @@ class GitMergeSchema(BaseModel):
     branch: str = Field(..., description="Имя ветки для слияния")
 
 
+class GitBlameSchema(BaseModel):
+    """Схема для git blame."""
+    path: str = Field(..., description="Путь к файлу для просмотра истории изменений по строкам")
+
+
+class GitLogFileSchema(BaseModel):
+    """Схема для git log конкретного файла."""
+    path: str = Field(..., description="Путь к файлу")
+    limit: int = Field(10, description="Количество последних коммитов для отображения")
+
+
 class GitTools:
     """Инструменты для работы с Git."""
 
@@ -173,3 +184,19 @@ class GitTools:
     def git_merge(self, branch: str) -> str:
         """Выполняет git merge."""
         return self._run_git(["merge", branch])
+
+    @register_tool(
+        "показывает историю изменений по строкам файла (git blame).",
+        schema=GitBlameSchema,
+    )
+    def git_blame(self, path: str) -> str:
+        """Выполняет git blame."""
+        return self._run_git(["blame", "--porcelain", path])
+
+    @register_tool(
+        "показывает историю изменений конкретного файла.",
+        schema=GitLogFileSchema,
+    )
+    def git_log_file(self, path: str, limit: int = 10) -> str:
+        """Выполняет git log для конкретного файла."""
+        return self._run_git(["log", f"-n {limit}", "--oneline", "--", path])

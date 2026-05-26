@@ -106,7 +106,7 @@ def test_search_in_files(tools, tmp_path):
     assert "a.py:1: print('hello')" in result
 
     # Поиск regex
-    result = tools.search_in_files("print\(.*\)")
+    result = tools.search_in_files(r"print\(.*\)")
     assert "a.py:1" in result
     assert "a.py:2" in result
 
@@ -168,3 +168,51 @@ def test_run_command_allowed(tools, tmp_path):
 def test_run_command_forbidden(tools):
     result = tools.run_command("rm -rf /")
     assert "запрещена" in result
+
+
+def test_copy_file(tools, tmp_path):
+    src = "source.txt"
+    dst = "dest.txt"
+    content = "copy me"
+    (tmp_path / src).write_text(content)
+
+    result = tools.copy_file(src, dst)
+    assert "успешно скопирован" in result
+    assert (tmp_path / dst).exists()
+    assert (tmp_path / dst).read_text() == content
+    assert (tmp_path / src).exists()  # исходный файл остался
+
+
+def test_copy_dir(tools, tmp_path):
+    src_dir = "src_dir"
+    dst_dir = "dst_dir"
+    src_path = tmp_path / src_dir
+    src_path.mkdir()
+    (src_path / "inner.txt").write_text("content")
+
+    result = tools.copy_file(src_dir, dst_dir)
+    assert "успешно скопирован" in result
+    assert (tmp_path / dst_dir).is_dir()
+    assert (tmp_path / dst_dir / "inner.txt").read_text() == "content"
+
+
+def test_get_file_size(tools, tmp_path):
+    filename = "sized.txt"
+    content = "Hello World"
+    (tmp_path / filename).write_text(content)
+
+    result = tools.get_file_size(filename)
+    assert "Размер" in result
+    assert "bytes" in result or "байт" in result
+
+
+def test_get_dir_size(tools, tmp_path):
+    dir_name = "sized_dir"
+    dir_path = tmp_path / dir_name
+    dir_path.mkdir()
+    (dir_path / "file1.txt").write_text("aaa")
+    (dir_path / "file2.txt").write_text("bbb")
+
+    result = tools.get_file_size(dir_name)
+    assert "Размер" in result
+    assert "6" in result  # 3 + 3 байта

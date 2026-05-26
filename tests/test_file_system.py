@@ -130,3 +130,55 @@ def test_delete_file_dir(fs_service, tmp_path):
     # Тест удаления директории
     fs_service.delete_file(dir_name)
     assert not dir_path.exists()
+
+
+def test_copy_file(fs_service, tmp_path):
+    # Подготовка: создаем файл
+    src = "source.txt"
+    dst = "destination.txt"
+    content = "copy me"
+    (tmp_path / src).write_text(content)
+
+    # Тест копирования
+    fs_service.copy_file(src, dst)
+    assert (tmp_path / dst).exists()
+    assert (tmp_path / dst).read_text() == content
+    assert (tmp_path / src).exists()  # исходный файл остался
+
+
+def test_copy_dir(fs_service, tmp_path):
+    # Подготовка: создаем директорию с файлом
+    src_dir = "source_dir"
+    dst_dir = "dest_dir"
+    src_path = tmp_path / src_dir
+    src_path.mkdir()
+    (src_path / "inner.txt").write_text("content")
+
+    # Тест копирования директории
+    fs_service.copy_file(src_dir, dst_dir)
+    assert (tmp_path / dst_dir).is_dir()
+    assert (tmp_path / dst_dir / "inner.txt").read_text() == "content"
+
+
+def test_get_file_size(fs_service, tmp_path):
+    # Подготовка: создаем файл
+    filename = "sized.txt"
+    content = "Hello World"
+    (tmp_path / filename).write_text(content)
+
+    # Тест получения размера файла
+    size = fs_service.get_file_size(filename)
+    assert size == len(content.encode("utf-8"))
+
+
+def test_get_dir_size(fs_service, tmp_path):
+    # Подготовка: создаем директорию с файлами
+    dir_name = "sized_dir"
+    dir_path = tmp_path / dir_name
+    dir_path.mkdir()
+    (dir_path / "file1.txt").write_text("aaa")
+    (dir_path / "file2.txt").write_text("bbb")
+
+    # Тест получения размера директории
+    size = fs_service.get_file_size(dir_name)
+    assert size == 6  # 3 + 3 байта

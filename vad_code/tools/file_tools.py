@@ -104,6 +104,17 @@ class RunCommandSchema(BaseModel):
     )
 
 
+class CopyFileSchema(BaseModel):
+    """Схема для копирования файла."""
+    src: str = Field(..., description="Путь к исходному файлу или папке")
+    dst: str = Field(..., description="Путь назначения")
+
+
+class GetFileSizeSchema(BaseModel):
+    """Схема для получения размера файла."""
+    path: str = Field(..., description="Путь к файлу или директории")
+
+
 class FileTools:
     """Инструменты для работы с файловой системой."""
 
@@ -336,3 +347,36 @@ class FileTools:
             return "Ошибка: время выполнения команды истекло (таймаут 60с)."
         except (OSError, ValueError) as e:
             return f"Ошибка при выполнении команды: {e}"
+
+    @register_tool(
+        "копирует файл или директорию",
+        schema=CopyFileSchema,
+    )
+    def copy_file(self, src: str, dst: str) -> str:
+        """Копирует файл или директорию."""
+        try:
+            self.fs.copy_file(src, dst)
+            return f"Объект {src} успешно скопирован в {dst}."
+        except (OSError, ValueError) as e:
+            return f"Ошибка при копировании {src} -> {dst}: {e}"
+
+    @register_tool(
+        "возвращает размер файла в байтах или общий размер директории",
+        schema=GetFileSizeSchema,
+    )
+    def get_file_size(self, path: str) -> str:
+        """Возвращает размер файла или директории."""
+        try:
+            size = self.fs.get_file_size(path)
+            # Форматируем размер для удобства чтения
+            if size >= 1024 * 1024 * 1024:
+                formatted = f"{size / (1024**3):.2f} GB"
+            elif size >= 1024 * 1024:
+                formatted = f"{size / (1024**2):.2f} MB"
+            elif size >= 1024:
+                formatted = f"{size / 1024:.2f} KB"
+            else:
+                formatted = f"{size} bytes"
+            return f"Размер {path}: {formatted} ({size} байт)"
+        except (OSError, ValueError) as e:
+            return f"Ошибка при получении размера {path}: {e}"

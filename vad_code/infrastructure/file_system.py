@@ -62,3 +62,23 @@ class FileSystemService:
             shutil.rmtree(path)
         else:
             path.unlink()
+
+    def copy_file(self, src: str, dst: str) -> None:
+        """Копирует файл или директорию."""
+        src_path = self.safe_path(src)
+        dst_path = self.safe_path(dst)
+        if src_path.is_dir():
+            shutil.copytree(src_path, dst_path)
+        else:
+            shutil.copy2(src_path, dst_path)
+
+    def get_file_size(self, filepath: str) -> int:
+        """Возвращает размер файла в байтах."""
+        path = self.safe_path(filepath)
+        if path.is_dir():
+            total = 0
+            for f in path.rglob("*"):
+                if f.is_file():
+                    total += f.stat().st_size
+            return total
+        return path.stat().st_size
