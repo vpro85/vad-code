@@ -147,7 +147,11 @@ class Agent:
 
         for i in range(settings.max_iterations):
             self.memory.trim()
-            ai_response = await self.llm_client.complete(self.memory.get_messages())
+            ai_response = await self.llm_client.complete_with_retry(
+                self.memory.get_messages(),
+                max_retries=3,
+                base_delay=1.0,
+            )
             self.memory.add_message("assistant", ai_response)
 
             call_json = self._extract_call(ai_response)

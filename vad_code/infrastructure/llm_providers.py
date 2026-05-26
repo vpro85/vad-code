@@ -3,9 +3,12 @@
 Поддерживает OpenAI-compatible (LM Studio, OpenAI), Ollama, Anthropic.
 """
 import abc
+import asyncio
 from typing import Any
 
 import httpx
+
+from vad_code.infrastructure.logger import log
 
 
 class BaseLLMProvider(abc.ABC):
@@ -21,6 +24,54 @@ class BaseLLMProvider(abc.ABC):
         """Закрывает сетевые соединения."""
         ...
 
+    async def complete_with_retry(
+        self,
+        messages: list[dict[str, Any]],
+        max_retries: int = 3,
+        base_delay: float = 1.0,
+    ) -> str:
+        """
+        Отправляет запрос с автоматическими повторными попытками.
+
+        :param messages: Список сообщений
+        :param max_retries: Максимальное количество попыток
+        :param base_delay: Базовая задержка между попытками (экспоненциальная)
+        :return: Ответ LLM или сообщение об ошибке
+        """
+        for attempt in range(1, max_retries + 1):
+            try:
+                result = await self.complete(messages)
+                # Если результат начинается с "Ошибка" — это ошибка провайдера
+                if result.startswith(("HTTP-ошибка", "Ошибка соединения", "Ошибка:")):
+                    if attempt < max_retries:
+                        delay = base_delay * (2 ** (attempt - 1))
+                        log.warning(
+                            "⚠️ Попытка %d/%d: %s. Повтор через %.1fс...",
+                            attempt,
+                            max_retries,
+                            result[:80],
+                            delay,
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+                    return result
+                return result
+            except Exception as e:
+                if attempt < max_retries:
+                    delay = base_delay * (2 ** (attempt - 1))
+                    log.warning(
+                        "⚠️ Попытка %d/%d: %s. Повтор через %.1fс...",
+                        attempt,
+                        max_retries,
+                        str(e)[:80],
+                        delay,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                return f"Ошибка после {max_retries} попыток: {e}"
+
+        return "Ошибка: неизвестная проблема"
+
 
 class OpenAICompatibleProvider(BaseLLMProvider):
     """
@@ -35,11 +86,13 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         api_key: str | None = None,
         timeout: int = 1200,
         temperature: float = 0.1,
+        max_tokens: int = 4096,
     ) -> None:
         self.url = url
         self.model = model
         self.timeout = timeout
         self.temperature = temperature
+        self.max_tokens = max_tokens
         self._client = httpx.AsyncClient(timeout=self.timeout)
 
         if api_key:
@@ -51,6 +104,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             "model": self.model,
             "messages": messages,
             "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
         }
 
         try:
@@ -82,11 +136,13 @@ class OllamaProvider(BaseLLMProvider):
         model: str = "llama3",
         timeout: int = 1200,
         temperature: float = 0.1,
+        max_tokens: int = 4096,
     ) -> None:
         self.url = url.rstrip("/")
         self.model = model
         self.timeout = timeout
         self.temperature = temperature
+        self.max_tokens = max_tokens
         self._client = httpx.AsyncClient(timeout=self.timeout)
 
     async def complete(self, messages: list[dict[str, Any]]) -> str:
@@ -97,6 +153,7 @@ class OllamaProvider(BaseLLMProvider):
             "stream": False,
             "options": {
                 "temperature": self.temperature,
+                "num_predict": self.max_tokens,
             },
         }
 
@@ -108,11 +165,11 @@ class OllamaProvider(BaseLLMProvider):
             result = response.json()
             return str(result["message"]["content"])
         except httpx.HTTPStatusError as e:
-            return f"HTTP-ошибка от Ollama: {e.response.status_code} - {e.response.text}"
+            return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
         except httpx.RequestError as e:
-            return f"Ошибка соединения с Ollama: {e}"
+            return f"Ошибка соединения: {e}"
         except (KeyError, IndexError):
-            return "Ошибка: неожиданный формат ответа от Ollama"
+            return "Ошибка: неожиданный формат ответа"
 
     async def close(self) -> None:
         """Закрывает клиент."""
@@ -173,11 +230,11 @@ class AnthropicProvider(BaseLLMProvider):
             result = response.json()
             return str(result["content"][0]["text"])
         except httpx.HTTPStatusError as e:
-            return f"HTTP-ошибка от Anthropic: {e.response.status_code} - {e.response.text}"
+            return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
         except httpx.RequestError as e:
-            return f"Ошибка соединения с Anthropic: {e}"
+            return f"Ошибка соединения: {e}"
         except (KeyError, IndexError):
-            return "Ошибка: неожиданный формат ответа от Anthropic"
+            return "Ошибка: неожиданный формат ответа"
 
     async def close(self) -> None:
         """Закрывает клиент."""
@@ -210,3 +267,7 @@ def create_provider(
         )
 
     return provider_class(**kwargs)
+
+
+# Обратная совместимость: LLMClient теперь — это OpenAICompatibleProvider
+LLMClient = OpenAICompatibleProvider
