@@ -189,6 +189,19 @@ class CountLinesSchema(BaseModel):
     path: str = Field(..., description="Путь к файлу или директории")
 
 
+class GrepInFileSchema(BaseModel):
+    """Схема для поиска по содержимому одного файла."""
+    path: str = Field(..., description="Путь к файлу")
+    pattern: str = Field(..., description="Строка или regex для поиска")
+    context_lines: int = Field(2, description="Количество строк контекста вокруг совпадения", ge=0, le=20)
+
+
+class GetProjectStatsSchema(BaseModel):
+    """Схема для получения статистики проекта."""
+    path: str = Field(".", description="Корневая директория проекта")
+    file_glob: str = Field("*.py", description="Маска файлов для анализа, например *.py")
+
+
 class FileTools:
     """Инструменты для работы с файловой системой."""
 
@@ -528,3 +541,71 @@ class FileTools:
             return f"Количество строк в {path}: {count}"
         except (OSError, ValueError) as e:
             return f"Ошибка при подсчете строк в {path}: {e}"
+
+    @register_tool(
+        "поиск по содержимому одного файла (аналог grep)",
+        schema=GrepInFileSchema,
+    )
+    def grep_in_file(self, path: str, pattern: str, context_lines: int = 2) -> str:
+        """Ищет паттерн в файле и возвращает совпадения с контекстом."""
+        try:
+            full_path = self.fs.safe_path(path)
+            if not full_path.exists():
+                return f"Ошибка: Файл {path} не найден."
+
+            content = full_path.read_text(encoding="utf-8")
+            lines = content.splitlines()
+            compiled = re.compile(pattern)
+
+            matches = []
+            for i, line in enumerate(lines):
+                if compiled.search(line):
+                    start = max(0, i - context_lines)
+                    end = min(len(lines), i + context_lines + 1)
+                    context = lines[start:end]
+                    match_block = "\n".join(
+                        f"{j+1}: {l}" for j, l in enumerate(context, start=start)
+                    )
+                    matches.append(match_block)
+
+            if not matches:
+                return f"Совпадений для '{pattern}' в {path} не найдено."
+
+            return "\n---\n".join(matches)
+        except re.error as e:
+            return f"Ошибка в regex-паттерне: {e}"
+        except (OSError, ValueError) as e:
+            return f"Ошибка при поиске в файле {path}: {e}"
+
+    @register_tool(
+        "общая статистика проекта (количество файлов, строк кода и т.д.)",
+        schema=GetProjectStatsSchema,
+    )
+    def get_project_stats(self, path: str = ".", file_glob: str = "*.py") -> str:
+        """Возвращает статистику по файлам проекта."""
+        try:
+            root = self.fs.safe_path(path)
+            files = list(root.rglob(file_glob))
+            # Фильтруем служебные папки
+            files = [
+                f for f in files
+                if not any(part in {".git", "__pycache__", ".venv", "node_modules"} for part in f.parts)
+            ]
+
+            total_lines = 0
+            total_size = 0
+            for f in files:
+                try:
+                    total_lines += len(f.read_text(encoding="utf-8").splitlines())
+                    total_size += f.stat().st_size
+                except (OSError, UnicodeDecodeError):
+                    continue
+
+            return (
+                f"Статистика проекта ({path}):\n"
+                f"- Файлов ({file_glob}): {len(files)}\n"
+                f"- Всего строк: {total_lines}\n"
+                f"- Общий размер: {total_size} байт"
+            )
+        except (OSError, ValueError) as e:
+            return f"Ошибка при получении статистики: {e}"

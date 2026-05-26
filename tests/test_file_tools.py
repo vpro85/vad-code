@@ -377,3 +377,46 @@ def test_file_tools_cache_integration(tools, tmp_path):
     for i in range(40, 60):
         found, val = tools._cache.get(f"file_{i}.txt")
         assert found and val == f"content_{i}"
+
+
+def test_grep_in_file(tools, tmp_path):
+    """Проверяет поиск по содержимому одного файла."""
+    filename = "grep_test.txt"
+    content = "Line 1: hello\nLine 2: world\nLine 3: hello again\nLine 4: end"
+    (tmp_path / filename).write_text(content)
+
+    # Поиск строки без контекста
+    result = tools.grep_in_file(filename, "hello", context_lines=0)
+    assert "Line 1: hello" in result
+    assert "Line 3: hello again" in result
+    assert "Line 2: world" not in result
+
+    # Поиск с контекстом
+    result = tools.grep_in_file(filename, "world", context_lines=1)
+    assert "Line 1: hello" in result
+    assert "Line 2: world" in result
+    assert "Line 3: hello again" in result
+
+    # Ничего не найдено
+    result = tools.grep_in_file(filename, "missing")
+    assert "не найдено" in result
+
+    # Файл не найден
+    result = tools.grep_in_file("missing.txt", "hello")
+    assert "не найден" in result
+
+
+def test_get_project_stats(tools, tmp_path):
+    """Проверяет получение статистики проекта."""
+    # Создаем структуру файлов
+    (tmp_path / "a.py").write_text("print('a')\nprint('b')")
+    (tmp_path / "b.py").write_text("x = 1")
+    subdir = tmp_path / "sub"
+    subdir.mkdir()
+    (subdir / "c.py").write_text("y = 2\nz = 3\nw = 4")
+
+    result = tools.get_project_stats(".", "*.py")
+    assert "Статистика проекта" in result
+    assert "Файлов (*.py): 3" in result
+    assert "Всего строк: 6" in result
+    assert "Общий размер" in result

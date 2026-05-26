@@ -23,6 +23,12 @@ class GitDiffSchema(BaseModel):
                                 description="Путь к конкретному файлу для просмотра разницы. Если None, показывает все изменения.")
 
 
+class GitDiffStagedSchema(BaseModel):
+    """Схема для git diff --staged."""
+    path: Optional[str] = Field(None,
+                                description="Путь к конкретному файлу. Если None, показывает все staged изменения.")
+
+
 class GitAddSchema(BaseModel):
     """Схема для git add."""
     path: str = Field(..., description="Путь к файлу или '.' для всех файлов")
@@ -119,6 +125,17 @@ class GitTools:
         return self._run_git(args)
 
     @register_tool(
+        "показать изменения в staged файлах (git diff --staged).",
+        schema=GitDiffStagedSchema,
+    )
+    def git_diff_staged(self, path: Optional[str] = None) -> str:
+        """Возвращает вывод git diff --staged."""
+        args = ["diff", "--staged"]
+        if path:
+            args.append(path)
+        return self._run_git(args)
+
+    @register_tool(
         "добавляет файлы в индекс (staging area) для последующего коммита.",
         schema=GitAddSchema,
     )
@@ -190,8 +207,56 @@ class GitTools:
         schema=GitBlameSchema,
     )
     def git_blame(self, path: str) -> str:
-        """Выполняет git blame."""
-        return self._run_git(["blame", "--porcelain", path])
+        """Выполняет git blame в читаемом формате."""
+        try:
+            result = subprocess.run(
+                ["git", "blame", "--porcelain", path],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=self.fs.root,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return f"Ошибка Git: {result.stderr}"
+
+            lines = result.stdout.splitlines()
+            blame_info: dict[int, dict] = {}
+            current_line: int | None = None
+
+            for line in lines:
+                if line.startswith("^"):
+                    continue
+                parts = line.split()
+                if len(parts) >= 3 and len(parts[0]) == 40:
+                    try:
+                        orig_line = int(parts[1])
+                        current_line = orig_line
+                        blame_info[current_line] = {
+                            "commit": parts[0][:7],
+                            "author": "",
+                            "summary": "",
+                            "content": "",
+                        }
+                    except ValueError:
+                        pass
+                elif line.startswith("author ") and current_line is not None:
+                    blame_info[current_line]["author"] = line[7:]
+                elif line.startswith("summary ") and current_line is not None:
+                    blame_info[current_line]["summary"] = line[8:]
+                elif line.startswith("\t") and current_line is not None:
+                    blame_info[current_line]["content"] = line[1:]
+
+            output_lines = []
+            for line_num in sorted(blame_info.keys()):
+                info = blame_info[line_num]
+                summary = info['summary']
+                output_lines.append(f"[{info['commit']}] {info['author']} ({summary}): {info['content']}")
+
+            return "\n".join(output_lines)
+        except Exception as e:
+            return f"Критическая ошибка при выполнении git blame: {e}"
 
     @register_tool(
         "показывает историю изменений конкретного файла.",

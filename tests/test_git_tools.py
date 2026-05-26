@@ -67,6 +67,20 @@ def test_git_diff(tools, git_repo):
     assert "+version 2" in diff_res
 
 
+def test_git_diff_staged(tools, git_repo):
+    file = git_repo / "test.txt"
+    file.write_text("version 1")
+    subprocess.run(["git", "add", "test.txt"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "v1"], cwd=str(git_repo), capture_output=True)
+    # Изменяем файл и добавляем в индекс
+    file.write_text("version 2")
+    subprocess.run(["git", "add", "test.txt"], cwd=str(git_repo), capture_output=True)
+    # git_diff_staged должен показать изменения в staged файлах
+    diff_staged_res = tools.git_diff_staged()
+    assert "-version 1" in diff_staged_res
+    assert "+version 2" in diff_staged_res
+
+
 def test_git_branch_checkout(tools, git_repo):
     # Сначала делаем начальный коммит, чтобы создать HEAD
     file = git_repo / "initial.txt"
