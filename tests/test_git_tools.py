@@ -178,3 +178,44 @@ def test_git_log_file(tools, git_repo):
     assert "Ошибка Git" not in log_res
     assert "commit 1" in log_res
     assert "commit 2" in log_res
+
+
+def test_git_current_branch(tools, git_repo):
+    # Создаем начальный коммит
+    file = git_repo / "test.txt"
+    file.write_text("content")
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "initial"], cwd=str(git_repo), capture_output=True)
+
+    # Проверяем текущую ветку
+    branch_res = tools.git_current_branch()
+    assert "Ошибка Git" not in branch_res
+    # По умолчанию git init создает master или main
+    assert "master" in branch_res or "main" in branch_res
+
+
+def test_git_search_commits(tools, git_repo):
+    # Создаем несколько коммитов
+    file = git_repo / "test.txt"
+    file.write_text("v1")
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "feat: add feature 1"], cwd=str(git_repo), capture_output=True)
+    file.write_text("v2")
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "fix: bug fix"], cwd=str(git_repo), capture_output=True)
+    file.write_text("v3")
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "feat: add feature 2"], cwd=str(git_repo), capture_output=True)
+
+    # Ищем коммиты с "feat"
+    search_res = tools.git_search_commits("feat")
+    assert "Ошибка Git" not in search_res
+    assert "feat: add feature 1" in search_res
+    assert "feat: add feature 2" in search_res
+    assert "fix: bug fix" not in search_res
+
+    # Ищем коммиты с "fix"
+    search_res = tools.git_search_commits("fix")
+    assert "Ошибка Git" not in search_res
+    assert "fix: bug fix" in search_res
+    assert "feat: add feature 1" not in search_res

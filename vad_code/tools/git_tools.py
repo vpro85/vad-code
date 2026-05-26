@@ -80,6 +80,17 @@ class GitLogFileSchema(BaseModel):
     limit: int = Field(10, description="Количество последних коммитов для отображения")
 
 
+class GitCurrentBranchSchema(BaseModel):
+    """Схема для определения текущей ветки."""
+    pass
+
+
+class GitSearchCommitsSchema(BaseModel):
+    """Схема для поиска коммитов по сообщению."""
+    query: str = Field(..., description="Текст для поиска в сообщениях коммитов")
+    limit: int = Field(10, description="Количество результатов для отображения")
+
+
 class GitTools:
     """Инструменты для работы с Git."""
 
@@ -265,3 +276,19 @@ class GitTools:
     def git_log_file(self, path: str, limit: int = 10) -> str:
         """Выполняет git log для конкретного файла."""
         return self._run_git(["log", f"-n {limit}", "--oneline", "--", path])
+
+    @register_tool(
+        "возвращает имя текущей активной ветки.",
+        schema=GitCurrentBranchSchema,
+    )
+    def git_current_branch(self) -> str:
+        """Возвращает текущую ветку."""
+        return self._run_git(["branch", "--show-current"])
+
+    @register_tool(
+        "поиск коммитов по тексту в сообщении (git log --grep).",
+        schema=GitSearchCommitsSchema,
+    )
+    def git_search_commits(self, query: str, limit: int = 10) -> str:
+        """Ищет коммиты по сообщению."""
+        return self._run_git(["log", f"-n {limit}", "--oneline", "--grep", query])
