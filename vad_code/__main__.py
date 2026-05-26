@@ -8,6 +8,7 @@ from vad_code.infrastructure.llm_client import LLMClient
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
+from vad_code.tools.git_tools import GitTools
 
 
 async def run() -> None:
@@ -22,10 +23,14 @@ async def run() -> None:
 
     # 2. Настраиваем инструменты (теперь это делается на уровне конфигурации приложения)
     file_tools = FileTools()
+    git_tools = GitTools()
     # Здесь мы вручную или через цикл регистрируем нужные методы
     for name, info in TOOL_REGISTRY.items():
         if hasattr(file_tools, name):
             method = getattr(file_tools, name)
+            executor.register_tool(name, method, schema=info.get("schema"))
+        elif hasattr(git_tools, name):
+            method = getattr(git_tools, name)
             executor.register_tool(name, method, schema=info.get("schema"))
 
     agent = Agent(llm_client=llm_client, executor=executor, tokenizer=tokenizer)
