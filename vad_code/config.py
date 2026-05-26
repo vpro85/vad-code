@@ -2,7 +2,6 @@
 Конфигурация приложения.
 Поддерживает переопределение через переменные окружения (Docker, .env).
 """
-import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,17 +13,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="ignore",  # Игнорируем лишние переменные в .env
+        extra="ignore",
     )
 
-    # Корневая директория проекта (переопределяется в Docker)
-    project_root: str = os.getenv(
-        "PROJECT_ROOT",
-        str(Path(__file__).parent.parent.resolve())
-    )
+    # Корневая директория проекта (переопределяется через PROJECT_ROOT)
+    project_root: str = str(Path(__file__).parent.parent.resolve())
 
     # LLM настройки
-    llm_provider: str = "openai"  # openai, ollama, anthropic
+    llm_provider: str = "openai"
     llm_url: str = "http://127.0.0.1:1234/v1/chat/completions"
     llm_model: str = "google/gemma-4-31b"
     llm_api_key: str | None = None
