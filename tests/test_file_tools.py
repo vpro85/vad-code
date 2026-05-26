@@ -256,3 +256,36 @@ def test_head_file(tools, tmp_path):
     assert "Line 1" in result
     assert "Line 3" in result
     assert "Line 10" not in result
+
+
+def test_get_file_info(tools, tmp_path):
+    filename = "info.txt"
+    content = "Hello World"
+    (tmp_path / filename).write_text(content)
+
+    result = tools.get_file_info(filename)
+    assert "info.txt" in result
+    assert "Файл" in result
+    assert "11 байт" in result
+
+
+def test_count_lines_file(tools, tmp_path):
+    filename = "lines.txt"
+    content = "\n".join(f"Line {i}" for i in range(1, 11))
+    (tmp_path / filename).write_text(content)
+
+    result = tools.count_lines(filename)
+    assert "Количество строк" in result
+    assert "10" in result
+
+
+def test_count_lines_dir(tools, tmp_path):
+    dir_name = "code_dir"
+    dir_path = tmp_path / dir_name
+    dir_path.mkdir()
+    (dir_path / "a.py").write_text("print('a')\nprint('b')")
+    (dir_path / "b.py").write_text("x = 1\ny = 2\nz = 3")
+
+    result = tools.count_lines(dir_name)
+    assert "Количество строк" in result
+    assert "5" in result

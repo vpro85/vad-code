@@ -101,3 +101,34 @@ class FileSystemService:
         with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         return "".join(lines[:num_lines])
+
+    def get_file_info(self, filepath: str) -> dict:
+        """Возвращает информацию о файле."""
+        path = self.safe_path(filepath)
+        stat = path.stat()
+        return {
+            "name": path.name,
+            "path": str(path),
+            "is_file": path.is_file(),
+            "is_dir": path.is_dir(),
+            "size": stat.st_size,
+            "created": stat.st_ctime,
+            "modified": stat.st_mtime,
+            "accessed": stat.st_atime,
+        }
+
+    def count_lines(self, filepath: str) -> int:
+        """Подсчитывает количество строк в файле или директории."""
+        path = self.safe_path(filepath)
+        if path.is_dir():
+            total = 0
+            for f in path.rglob("*"):
+                if f.is_file():
+                    try:
+                        with open(f, "r", encoding="utf-8") as file:
+                            total += sum(1 for _ in file)
+                    except (UnicodeDecodeError, PermissionError):
+                        pass
+            return total
+        with open(path, "r", encoding="utf-8") as f:
+            return sum(1 for _ in f)

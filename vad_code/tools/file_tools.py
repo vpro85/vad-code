@@ -133,6 +133,16 @@ class HeadFileSchema(BaseModel):
     num_lines: int = Field(20, description="Количество строк с начала файла", ge=1, le=500)
 
 
+class GetFileInfoSchema(BaseModel):
+    """Схема для получения информации о файле."""
+    path: str = Field(..., description="Путь к файлу или директории")
+
+
+class CountLinesSchema(BaseModel):
+    """Схема для подсчета строк в файле или директории."""
+    path: str = Field(..., description="Путь к файлу или директории")
+
+
 class FileTools:
     """Инструменты для работы с файловой системой."""
 
@@ -436,3 +446,38 @@ class FileTools:
             return f"Первые {num_lines} строк файла {path}:\n---\n{content}---"
         except (OSError, ValueError) as e:
             return f"Ошибка при чтении файла {path}: {e}"
+
+    @register_tool(
+        "возвращает информацию о файле (размер, даты, права)",
+        schema=GetFileInfoSchema,
+    )
+    def get_file_info(self, path: str) -> str:
+        """Возвращает информацию о файле."""
+        try:
+            import datetime
+
+            info = self.fs.get_file_info(path)
+            modified = datetime.datetime.fromtimestamp(info["modified"]).strftime("%Y-%m-%d %H:%M:%S")
+            accessed = datetime.datetime.fromtimestamp(info["accessed"]).strftime("%Y-%m-%d %H:%M:%S")
+            return (
+                f"Имя: {info['name']}\n"
+                f"Путь: {info['path']}\n"
+                f"Тип: {'Директория' if info['is_dir'] else 'Файл'}\n"
+                f"Размер: {info['size']} байт\n"
+                f"Изменен: {modified}\n"
+                f"Доступ: {accessed}"
+            )
+        except (OSError, ValueError) as e:
+            return f"Ошибка при получении информации о {path}: {e}"
+
+    @register_tool(
+        "подсчитывает количество строк в файле или директории",
+        schema=CountLinesSchema,
+    )
+    def count_lines(self, path: str) -> str:
+        """Подсчитывает количество строк."""
+        try:
+            count = self.fs.count_lines(path)
+            return f"Количество строк в {path}: {count}"
+        except (OSError, ValueError) as e:
+            return f"Ошибка при подсчете строк в {path}: {e}"

@@ -227,3 +227,43 @@ def test_head_file(fs_service, tmp_path):
     assert "Line 2" in head
     assert "Line 3" in head
     assert "Line 10" not in head
+
+
+def test_get_file_info(fs_service, tmp_path):
+    # Подготовка: создаем файл
+    filename = "info.txt"
+    content = "Hello World"
+    (tmp_path / filename).write_text(content)
+
+    # Тест получения информации
+    info = fs_service.get_file_info(filename)
+    assert info["name"] == "info.txt"
+    assert info["is_file"] is True
+    assert info["is_dir"] is False
+    assert info["size"] == len(content.encode("utf-8"))
+    assert "modified" in info
+    assert "accessed" in info
+
+
+def test_count_lines_file(fs_service, tmp_path):
+    # Подготовка: создаем файл
+    filename = "lines.txt"
+    content = "\n".join(f"Line {i}" for i in range(1, 11))
+    (tmp_path / filename).write_text(content)
+
+    # Тест подсчета строк
+    count = fs_service.count_lines(filename)
+    assert count == 10
+
+
+def test_count_lines_dir(fs_service, tmp_path):
+    # Подготовка: создаем директорию с файлами
+    dir_name = "code_dir"
+    dir_path = tmp_path / dir_name
+    dir_path.mkdir()
+    (dir_path / "a.py").write_text("print('a')\nprint('b')")
+    (dir_path / "b.py").write_text("x = 1\ny = 2\nz = 3")
+
+    # Тест подсчета строк в директории
+    count = fs_service.count_lines(dir_name)
+    assert count == 5  # 2 + 3 строки
