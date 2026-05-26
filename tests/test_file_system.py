@@ -182,3 +182,48 @@ def test_get_dir_size(fs_service, tmp_path):
     # Тест получения размера директории
     size = fs_service.get_file_size(dir_name)
     assert size == 6  # 3 + 3 байта
+
+
+def test_find_files(fs_service, tmp_path):
+    # Подготовка: создаем структуру файлов
+    (tmp_path / "test_main.py").touch()
+    (tmp_path / "test_utils.py").touch()
+    (tmp_path / "app.py").touch()
+    subdir = tmp_path / "sub"
+    subdir.mkdir()
+    (subdir / "test_sub.py").touch()
+
+    # Тест поиска
+    files = fs_service.find_files("test_*.py")
+    assert "test_main.py" in files
+    assert "test_utils.py" in files
+    assert "sub/test_sub.py" in files
+    assert "app.py" not in files
+
+
+def test_tail_file(fs_service, tmp_path):
+    # Подготовка: создаем файл с несколькими строками
+    filename = "log.txt"
+    content = "\n".join(f"Line {i}" for i in range(1, 11))
+    (tmp_path / filename).write_text(content)
+
+    # Тест чтения последних строк
+    tail = fs_service.tail_file(filename, 3)
+    assert "Line 8" in tail
+    assert "Line 9" in tail
+    assert "Line 10" in tail
+    assert "Line 7" not in tail
+
+
+def test_head_file(fs_service, tmp_path):
+    # Подготовка: создаем файл с несколькими строками
+    filename = "log.txt"
+    content = "\n".join(f"Line {i}" for i in range(1, 11))
+    (tmp_path / filename).write_text(content)
+
+    # Тест чтения первых строк
+    head = fs_service.head_file(filename, 3)
+    assert "Line 1" in head
+    assert "Line 2" in head
+    assert "Line 3" in head
+    assert "Line 10" not in head

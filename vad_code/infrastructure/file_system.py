@@ -82,3 +82,22 @@ class FileSystemService:
                     total += f.stat().st_size
             return total
         return path.stat().st_size
+
+    def find_files(self, pattern: str, directory: str = ".") -> list[str]:
+        """Находит файлы по шаблону имени."""
+        path = self.safe_path(directory)
+        return [str(p.relative_to(path)) for p in path.rglob(pattern)]
+
+    def tail_file(self, filepath: str, num_lines: int = 20) -> str:
+        """Возвращает последние N строк файла."""
+        path = self.safe_path(filepath)
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        return "".join(lines[-num_lines:])
+
+    def head_file(self, filepath: str, num_lines: int = 20) -> str:
+        """Возвращает первые N строк файла."""
+        path = self.safe_path(filepath)
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        return "".join(lines[:num_lines])

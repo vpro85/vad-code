@@ -115,6 +115,24 @@ class GetFileSizeSchema(BaseModel):
     path: str = Field(..., description="Путь к файлу или директории")
 
 
+class FindFilesSchema(BaseModel):
+    """Схема для поиска файлов по шаблону."""
+    pattern: str = Field(..., description="Шаблон имени файла, например '*.py' или 'test_*.py'")
+    directory: str = Field(".", description="Директория для поиска")
+
+
+class TailFileSchema(BaseModel):
+    """Схема для просмотра последних строк файла."""
+    path: str = Field(..., description="Путь к файлу")
+    num_lines: int = Field(20, description="Количество строк с конца файла", ge=1, le=500)
+
+
+class HeadFileSchema(BaseModel):
+    """Схема для просмотра первых строк файла."""
+    path: str = Field(..., description="Путь к файлу")
+    num_lines: int = Field(20, description="Количество строк с начала файла", ge=1, le=500)
+
+
 class FileTools:
     """Инструменты для работы с файловой системой."""
 
@@ -380,3 +398,41 @@ class FileTools:
             return f"Размер {path}: {formatted} ({size} байт)"
         except (OSError, ValueError) as e:
             return f"Ошибка при получении размера {path}: {e}"
+
+    @register_tool(
+        "находит файлы по шаблону имени (рекурсивно)",
+        schema=FindFilesSchema,
+    )
+    def find_files(self, pattern: str, directory: str = ".") -> str:
+        """Находит файлы по шаблону."""
+        try:
+            files = self.fs.find_files(pattern, directory)
+            if not files:
+                return f"Файлы по шаблону '{pattern}' не найдены."
+            return "\n".join(files[:_MAX_SEARCH_RESULTS])
+        except (OSError, ValueError) as e:
+            return f"Ошибка при поиске файлов: {e}"
+
+    @register_tool(
+        "просмотр последних N строк файла (аналог tail)",
+        schema=TailFileSchema,
+    )
+    def tail_file(self, path: str, num_lines: int = 20) -> str:
+        """Возвращает последние N строк файла."""
+        try:
+            content = self.fs.tail_file(path, num_lines)
+            return f"Последние {num_lines} строк файла {path}:\n---\n{content}---"
+        except (OSError, ValueError) as e:
+            return f"Ошибка при чтении файла {path}: {e}"
+
+    @register_tool(
+        "просмотр первых N строк файла (аналог head)",
+        schema=HeadFileSchema,
+    )
+    def head_file(self, path: str, num_lines: int = 20) -> str:
+        """Возвращает первые N строк файла."""
+        try:
+            content = self.fs.head_file(path, num_lines)
+            return f"Первые {num_lines} строк файла {path}:\n---\n{content}---"
+        except (OSError, ValueError) as e:
+            return f"Ошибка при чтении файла {path}: {e}"

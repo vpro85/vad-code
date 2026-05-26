@@ -216,3 +216,43 @@ def test_get_dir_size(tools, tmp_path):
     result = tools.get_file_size(dir_name)
     assert "Размер" in result
     assert "6" in result  # 3 + 3 байта
+
+
+def test_find_files(tools, tmp_path):
+    # Подготовка: создаем структуру файлов
+    (tmp_path / "test_main.py").touch()
+    (tmp_path / "test_utils.py").touch()
+    (tmp_path / "app.py").touch()
+    subdir = tmp_path / "sub"
+    subdir.mkdir()
+    (subdir / "test_sub.py").touch()
+
+    result = tools.find_files("test_*.py")
+    assert "test_main.py" in result
+    assert "test_utils.py" in result
+    assert "sub/test_sub.py" in result
+    assert "app.py" not in result
+
+
+def test_tail_file(tools, tmp_path):
+    filename = "log.txt"
+    content = "\n".join(f"Line {i}" for i in range(1, 11))
+    (tmp_path / filename).write_text(content)
+
+    result = tools.tail_file(filename, 3)
+    assert "Последние 3 строк" in result
+    assert "Line 8" in result
+    assert "Line 10" in result
+    assert "Line 7" not in result
+
+
+def test_head_file(tools, tmp_path):
+    filename = "log.txt"
+    content = "\n".join(f"Line {i}" for i in range(1, 11))
+    (tmp_path / filename).write_text(content)
+
+    result = tools.head_file(filename, 3)
+    assert "Первые 3 строк" in result
+    assert "Line 1" in result
+    assert "Line 3" in result
+    assert "Line 10" not in result
