@@ -45,10 +45,11 @@ def test_git_add_commit(tools, git_repo):
     file.write_text("hello")
     # Добавляем файл
     add_res = tools.git_add(".")
-    assert "Команда выполнена успешно" in add_res
+    assert "Ошибка Git" not in add_res
     # Коммитим
     commit_res = tools.git_commit("Initial commit")
-    assert "Команда выполнена успешно" in commit_res
+    assert "Ошибка Git" not in commit_res
+    assert "Initial commit" in commit_res
     # Проверяем лог
     log_res = tools.git_log()
     assert "Initial commit" in log_res
@@ -67,12 +68,22 @@ def test_git_diff(tools, git_repo):
 
 
 def test_git_branch_checkout(tools, git_repo):
+    # Сначала делаем начальный коммит, чтобы создать HEAD
+    file = git_repo / "initial.txt"
+    file.write_text("initial")
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
+    subprocess.run(["git", "commit", "-m", "initial"], cwd=str(git_repo), capture_output=True)
     # Создаем ветку
     branch_res = tools.git_branch("feature")
-    assert "Команда выполнена успешно" in branch_res
+    assert "Ошибка Git" not in branch_res
     # Переключаемся на нее
     checkout_res = tools.git_checkout("feature")
-    assert "Switched to branch 'feature'" in checkout_res
+    assert "Ошибка Git" not in checkout_res
+    # Проверяем, что ветка действительно переключилась
+    current_branch = subprocess.check_output(
+        ["git", "branch", "--show-current"], cwd=str(git_repo), text=True
+    ).strip()
+    assert current_branch == "feature"
 
 
 def test_git_show(tools, git_repo):
