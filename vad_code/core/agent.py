@@ -77,20 +77,38 @@ class Agent:
 
     @staticmethod
     def _extract_call(ai_response: str) -> str | None:
-        """Извлекает ПОСЛЕДНИЙ JSON из блоков ```json...```, если он содержит ключ 'tool'"""
-        matches = re.findall(r"```json\s*(.*?)\s*```", ai_response, re.DOTALL)
-        if not matches:
-            return None
+        """Извлекает JSON-вызов инструмента из ответа AI."""
 
-        # Проверяем блоки с конца, чтобы найти первый валидный вызов инструмента
-        for candidate in reversed(matches):
-            try:
-                data = json.loads(candidate)
-                if isinstance(data, dict) and "tool" in data:
-                    return str(candidate)
-            except (json.JSONDecodeError, ValueError):
-                continue
+        # 1. Ищем в блоках ```json ... ```
+        matches = re.findall(r"```json\s*(.*?)\s*```", ai_response, re.DOTALL)
+        if matches:
+            for candidate in reversed(matches):
+                if Agent._try_parse_json(candidate):
+                    return candidate
+        # 2. Ищем в любых блоках ``` ... ```
+        matches = re.findall(r"```\s*(.*?)\s*```", ai_response, re.DOTALL)
+        if matches:
+            for candidate in reversed(matches):
+                if Agent._try_parse_json(candidate):
+                    return candidate
+        # 3. Пытаемся найти JSON-объект в тексте
+        # Ищем первое вхождение '{' и последнее '}'
+        start = ai_response.find('{')
+        end = ai_response.rfind('}')
+        if start != -1 and end != -1 and start < end:
+            candidate = ai_response[start:end + 1]
+            if Agent._try_parse_json(candidate):
+                return candidate
         return None
+
+    @staticmethod
+    def _try_parse_json(text: str) -> bool:
+        """Пытается распарсить текст как JSON и проверить наличие ключа 'tool'."""
+        try:
+            data = json.loads(text)
+            return isinstance(data, dict) and "tool" in data
+        except (json.JSONDecodeError, ValueError):
+            return False
 
     @staticmethod
     def _get_tool_name(call_json: str) -> str:
