@@ -25,6 +25,30 @@ class GitCommitSchema(BaseModel):
     """Схема для git commit."""
     message: str = Field(..., description="Сообщение коммита")
 
+class GitLogSchema(BaseModel):
+    """Схема для git log."""
+    limit: int = Field(10, description="Количество последних коммитов для отображения")
+
+class GitBranchSchema(BaseModel):
+    """Схема для git branch."""
+    name: Optional[str] = Field(None, description="Имя ветки. Если None, показывает список веток.")
+
+class GitCheckoutSchema(BaseModel):
+    """Схема для git checkout."""
+    target: str = Field(..., description="Ветка или путь к файлу для восстановления")
+
+class GitShowSchema(BaseModel):
+    """Схема для git show."""
+    commit_hash: str = Field(..., description="Хэш коммита для просмотра")
+
+class GitStashSchema(BaseModel):
+    """Схема для git stash."""
+    action: str = Field(..., description="Действие: 'push', 'pop', 'list' или 'apply'")
+
+class GitMergeSchema(BaseModel):
+    """Схема для git merge."""
+    branch: str = Field(..., description="Имя ветки для слияния")
+
 class GitTools:
     """Инструменты для работы с Git."""
 
