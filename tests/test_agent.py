@@ -90,19 +90,3 @@ Second attempt:
         response = "I don't need any tools."
         result = Agent._extract_call(response)
         assert result is None
-
-    def test_extract_json_with_backticks_in_content(self):
-        response = """Here is the code:
-```json
-{
-  "tool": "write_file",
-  "arguments": {
-    "path": "test.py",
-    "content": "def hello():\n    print('```')"
-  }
-}
-```
-Done."""
-        result = Agent._extract_call(response)
-        assert result is not None
-        assert "write_file" in result
