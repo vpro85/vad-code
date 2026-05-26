@@ -2,7 +2,7 @@
 Модуль инструментов для работы с Git.
 """
 import subprocess
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,19 +14,24 @@ from ..infrastructure.file_system import FileSystemService
 
 class GitStatusSchema(BaseModel):
     """Схема для git status."""
-    pass
 
 
 class GitDiffSchema(BaseModel):
     """Схема для git diff."""
-    path: Optional[str] = Field(None,
-                                description="Путь к конкретному файлу для просмотра разницы. Если None, показывает все изменения.")
+    path: Optional[str] = Field(
+        None,
+        description="Путь к конкретному файлу для просмотра разницы. "
+        "Если None, показывает все изменения.",
+    )
 
 
 class GitDiffStagedSchema(BaseModel):
     """Схема для git diff --staged."""
-    path: Optional[str] = Field(None,
-                                description="Путь к конкретному файлу. Если None, показывает все staged изменения.")
+    path: Optional[str] = Field(
+        None,
+        description="Путь к конкретному файлу. "
+        "Если None, показывает все staged изменения.",
+    )
 
 
 class GitAddSchema(BaseModel):
@@ -82,7 +87,6 @@ class GitLogFileSchema(BaseModel):
 
 class GitCurrentBranchSchema(BaseModel):
     """Схема для определения текущей ветки."""
-    pass
 
 
 class GitSearchCommitsSchema(BaseModel):
@@ -112,8 +116,10 @@ class GitTools:
             if result.returncode != 0:
                 return f"Ошибка Git: {result.stderr}"
 
-            return result.stdout if result.stdout.strip() else "Команда выполнена успешно, вывод пуст."
-        except Exception as e:
+            if result.stdout.strip():
+                return result.stdout
+            return "Команда выполнена успешно, вывод пуст."
+        except subprocess.SubprocessError as e:
             return f"Критическая ошибка при выполнении git: {e}"
 
     @register_tool(
@@ -233,7 +239,7 @@ class GitTools:
                 return f"Ошибка Git: {result.stderr}"
 
             lines = result.stdout.splitlines()
-            blame_info: dict[int, dict] = {}
+            blame_info: dict[int, dict[str, Any]] = {}
             current_line: int | None = None
 
             for line in lines:
@@ -262,11 +268,14 @@ class GitTools:
             output_lines = []
             for line_num in sorted(blame_info.keys()):
                 info = blame_info[line_num]
-                summary = info['summary']
-                output_lines.append(f"[{info['commit']}] {info['author']} ({summary}): {info['content']}")
+                summary = info["summary"]
+                output_lines.append(
+                    f"[{info['commit']}] {info['author']} "
+                    f"({summary}): {info['content']}"
+                )
 
             return "\n".join(output_lines)
-        except Exception as e:
+        except subprocess.SubprocessError as e:
             return f"Критическая ошибка при выполнении git blame: {e}"
 
     @register_tool(

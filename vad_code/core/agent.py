@@ -1,6 +1,7 @@
 """Модуль агента — управляет историей, системным промптом и циклом вызовов инструментов"""
-import json5
 import re
+
+import json5
 
 from vad_code.config import settings
 from vad_code.core.executor import ToolExecutor
@@ -16,7 +17,12 @@ MAX_OBSERVATION_CHARS = 30_000
 class Agent:
     """Агент: управляет историей, формирует промпт и запускает цикл выполнения задач."""
 
-    def __init__(self, llm_client: BaseLLMProvider, executor: ToolExecutor, tokenizer: Tokenizer) -> None:
+    def __init__(
+        self,
+        llm_client: BaseLLMProvider,
+        executor: ToolExecutor,
+        tokenizer: Tokenizer,
+    ) -> None:
         """
         Инициализация агента через внедрение зависимостей.
 

@@ -62,4 +62,3 @@ def setup_logger() -> logging.Logger:
 
 
 log = setup_logger()
-

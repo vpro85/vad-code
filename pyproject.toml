@@ -25,5 +25,17 @@ dev = [
 
 [tool.flake8]
 max-line-length = 100
-ignore = ["E203", "W503"]
+ignore = ["E203", "W503", "W504"]
 exclude = [".venv", "__pycache__", ".git", "htmlcov", ".pytest_cache"]
+
+[tool.mypy]
+strict=true
+disallow_untyped_calls = true
+disallow_any_generics = true
+warn_return_any = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+strict_equality = true
+ignore_missing_imports = false
+show_error_codes = true

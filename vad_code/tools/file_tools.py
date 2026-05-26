@@ -193,7 +193,12 @@ class GrepInFileSchema(BaseModel):
     """Схема для поиска по содержимому одного файла."""
     path: str = Field(..., description="Путь к файлу")
     pattern: str = Field(..., description="Строка или regex для поиска")
-    context_lines: int = Field(2, description="Количество строк контекста вокруг совпадения", ge=0, le=20)
+    context_lines: int = Field(
+        2,
+        description="Количество строк контекста вокруг совпадения",
+        ge=0,
+        le=20,
+    )
 
 
 class GetProjectStatsSchema(BaseModel):
@@ -517,8 +522,12 @@ class FileTools:
             import datetime
 
             info = self.fs.get_file_info(path)
-            modified = datetime.datetime.fromtimestamp(info["modified"]).strftime("%Y-%m-%d %H:%M:%S")
-            accessed = datetime.datetime.fromtimestamp(info["accessed"]).strftime("%Y-%m-%d %H:%M:%S")
+            modified = datetime.datetime.fromtimestamp(
+                info["modified"]
+            ).strftime("%Y-%m-%d %H:%M:%S")
+            accessed = datetime.datetime.fromtimestamp(
+                info["accessed"]
+            ).strftime("%Y-%m-%d %H:%M:%S")
             return (
                 f"Имя: {info['name']}\n"
                 f"Путь: {info['path']}\n"
@@ -587,9 +596,10 @@ class FileTools:
             root = self.fs.safe_path(path)
             files = list(root.rglob(file_glob))
             # Фильтруем служебные папки
+            excluded = {".git", "__pycache__", ".venv", "node_modules"}
             files = [
                 f for f in files
-                if not any(part in {".git", "__pycache__", ".venv", "node_modules"} for part in f.parts)
+                if not any(part in excluded for part in f.parts)
             ]
 
             total_lines = 0

@@ -17,12 +17,12 @@ class BaseLLMProvider(abc.ABC):
     @abc.abstractmethod
     async def complete(self, messages: list[dict[str, Any]]) -> str:
         """Отправляет запрос к LLM и возвращает ответ."""
-        ...
+        raise NotImplementedError
 
     @abc.abstractmethod
     async def close(self) -> None:
         """Закрывает сетевые соединения."""
-        ...
+        raise NotImplementedError
 
     async def complete_with_retry(
         self,
@@ -56,7 +56,7 @@ class BaseLLMProvider(abc.ABC):
                         continue
                     return result
                 return result
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - намеренно широкое исключение для retry-логики
                 if attempt < max_retries:
                     delay = base_delay * (2 ** (attempt - 1))
                     log.warning(
@@ -113,14 +113,14 @@ class BaseHTTPProvider(BaseLLMProvider):
         ...
 
     @abc.abstractmethod
-    def _build_payload(self, messages: list[dict[str, Any]]) -> dict:
+    def _build_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """Формирует тело запроса."""
-        ...
+        raise NotImplementedError
 
     @abc.abstractmethod
-    def _parse_response(self, result: dict) -> str:
+    def _parse_response(self, result: dict[str, Any]) -> str:
         """Парсит ответ от API."""
-        ...
+        raise NotImplementedError
 
 
 class OpenAICompatibleProvider(BaseHTTPProvider):
@@ -149,7 +149,7 @@ class OpenAICompatibleProvider(BaseHTTPProvider):
     def _get_request_url(self) -> str:
         return self.url
 
-    def _build_payload(self, messages: list[dict[str, Any]]) -> dict:
+    def _build_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         return {
             "model": self.model,
             "messages": messages,
@@ -157,7 +157,7 @@ class OpenAICompatibleProvider(BaseHTTPProvider):
             "max_tokens": self.max_tokens,
         }
 
-    def _parse_response(self, result: dict) -> str:
+    def _parse_response(self, result: dict[str, Any]) -> str:
         return str(result["choices"][0]["message"]["content"])
 
 
@@ -183,7 +183,7 @@ class OllamaProvider(BaseHTTPProvider):
     def _get_request_url(self) -> str:
         return f"{self.url}/api/chat"
 
-    def _build_payload(self, messages: list[dict[str, Any]]) -> dict:
+    def _build_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         return {
             "model": self.model,
             "messages": messages,
@@ -194,7 +194,7 @@ class OllamaProvider(BaseHTTPProvider):
             },
         }
 
-    def _parse_response(self, result: dict) -> str:
+    def _parse_response(self, result: dict[str, Any]) -> str:
         return str(result["message"]["content"])
 
 
@@ -225,10 +225,10 @@ class AnthropicProvider(BaseHTTPProvider):
     def _get_request_url(self) -> str:
         return self.url
 
-    def _build_payload(self, messages: list[dict[str, Any]]) -> dict:
+    def _build_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         # Anthropic требует отдельный system-промпт
         system_prompt = ""
-        user_messages = []
+        user_messages: list[dict[str, Any]] = []
 
         for msg in messages:
             if msg.get("role") == "system":
@@ -236,7 +236,7 @@ class AnthropicProvider(BaseHTTPProvider):
             else:
                 user_messages.append(msg)
 
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": user_messages,
             "temperature": self.temperature,
@@ -248,7 +248,7 @@ class AnthropicProvider(BaseHTTPProvider):
 
         return payload
 
-    def _parse_response(self, result: dict) -> str:
+    def _parse_response(self, result: dict[str, Any]) -> str:
         return str(result["content"][0]["text"])
 
 
@@ -263,7 +263,7 @@ def create_provider(
     :param kwargs: Параметры для инициализации провайдера
     :return: Экземпляр провайдера
     """
-    providers = {
+    providers: dict[str, type[BaseLLMProvider]] = {
         "openai": OpenAICompatibleProvider,
         "lm_studio": OpenAICompatibleProvider,  # LM Studio совместим с OpenAI
         "ollama": OllamaProvider,

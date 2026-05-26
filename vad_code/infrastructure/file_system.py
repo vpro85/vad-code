@@ -3,6 +3,7 @@
 """
 import shutil
 from pathlib import Path
+from typing import Any
 
 from ..config import settings
 
@@ -102,7 +103,7 @@ class FileSystemService:
             lines = f.readlines()
         return "".join(lines[:num_lines])
 
-    def get_file_info(self, filepath: str) -> dict:
+    def get_file_info(self, filepath: str) -> dict[str, Any]:
         """Возвращает информацию о файле."""
         path = self.safe_path(filepath)
         stat = path.stat()
@@ -122,13 +123,13 @@ class FileSystemService:
         path = self.safe_path(filepath)
         if path.is_dir():
             total = 0
-            for f in path.rglob("*"):
-                if f.is_file():
+            for file_path in path.rglob("*"):
+                if file_path.is_file():
                     try:
-                        with open(f, "r", encoding="utf-8") as file:
-                            total += sum(1 for _ in file)
+                        with open(file_path, "r", encoding="utf-8") as fh:
+                            total += sum(1 for _ in fh)
                     except (UnicodeDecodeError, PermissionError):
                         pass
             return total
-        with open(path, "r", encoding="utf-8") as f:
-            return sum(1 for _ in f)
+        with open(path, "r", encoding="utf-8") as fh:
+            return sum(1 for _ in fh)

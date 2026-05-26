@@ -1,7 +1,8 @@
 """Модуль исполнителя инструментов."""
 import inspect
-import json5
 from typing import Any, Callable, Optional
+
+import json5
 
 from vad_code.infrastructure.logger import log
 
