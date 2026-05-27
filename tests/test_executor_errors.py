@@ -24,7 +24,7 @@ async def test_execute_missing_tool_field(executor):
     call_text = json5.dumps({"arguments": {"some": "data"}})
     result = await executor.execute(call_text)
     assert "Ошибка валидации" in result
-    assert "поле 'tool'" in result
+    assert "Проверьте типы" in result
 
 @pytest.mark.anyio
 async def test_execute_validation_error(executor):

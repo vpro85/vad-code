@@ -54,7 +54,9 @@ async def test_execute_tool_not_found(executor):
     """Тест вызова незарегистрированного инструмента."""
     call_text = json5.dumps({"tool": "nonexistent", "arguments": {}})
     result = await executor.execute(call_text)
-    assert "не зарегистрирован" in result
+    assert "❌" in result
+    assert "nonexistent" in result
+    assert "💡" in result
 
 
 @pytest.mark.anyio
@@ -67,7 +69,7 @@ async def test_execute_tool_raises_os_error(executor):
     executor.register_tool("failing", failing_tool)
     call_text = json5.dumps({"tool": "failing", "arguments": {}})
     result = await executor.execute(call_text)
-    assert "Неожиданная ошибка" in result
+    assert "❌" in result
     assert "OSError" in result
 
 
@@ -81,7 +83,7 @@ async def test_execute_tool_raises_type_error(executor):
     executor.register_tool("type_error", type_error_tool)
     call_text = json5.dumps({"tool": "type_error", "arguments": {"x": 123}})
     result = await executor.execute(call_text)
-    assert "Неожиданная ошибка" in result
+    assert "❌" in result
     assert "TypeError" in result
 
 
@@ -153,7 +155,9 @@ async def test_execute_tool_timeout(executor):
     executor.timeout = 0.1  # Очень маленький таймаут для теста
     call_text = json5.dumps({"tool": "slow", "arguments": {}})
     result = await executor.execute(call_text)
-    assert "Ошибка таймаута" in result
+    assert "❌" in result
+    assert "Превышено время" in result
+    assert "💡" in result
 
 
 @pytest.mark.anyio
@@ -183,5 +187,6 @@ async def test_execute_tool_not_found_shows_available(executor):
     executor.register_tool("existing_tool", lambda: "ok")
     call_text = json5.dumps({"tool": "nonexistent", "arguments": {}})
     result = await executor.execute(call_text)
-    assert "не зарегистрирован" in result
+    assert "❌" in result
+    assert "nonexistent" in result
     assert "existing_tool" in result

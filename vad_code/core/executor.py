@@ -10,6 +10,7 @@ from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.backup_manager import backup_manager
 from vad_code.infrastructure.audit_logger import audit_logger
 from vad_code.infrastructure.metrics import session_metrics
+from vad_code.infrastructure.error_messages import format_error, get_available_tools_message
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
 
@@ -201,7 +202,7 @@ class ToolExecutor:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.error("❌ Validation Error: %s", e)
-            error_msg = f"Ошибка валидации: {e}"
+            error_msg = format_error("validation_error", tool_name=func_name)
             if call_id:
                 audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
             return error_msg
@@ -209,7 +210,18 @@ class ToolExecutor:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.warning("🚫 Permission Denied: %s", e)
-            error_msg = f"Ошибка доступа: {e}"
+            allowed = [l.value for l in permission_manager.allowed_levels] if permission_manager.allowed_levels else []
+            
+            # Получаем risk_level заново, так как проверка могла произойти до его определения
+            tool_meta = self.metadata.get(func_name, {})
+            risk_level = tool_meta.get("risk_level", ToolRiskLevel.READ)
+
+            error_msg = format_error(
+                "permission_denied",
+                tool_name=func_name,
+                risk_level=risk_level.value,
+                allowed_levels=allowed
+            )
             if call_id:
                 audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
             return error_msg
@@ -217,7 +229,12 @@ class ToolExecutor:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.error("❌ Tool Not Found: %s", e)
-            error_msg = f"Ошибка: {e}"
+            available = sorted(self.tools.keys()) if self.tools else []
+            error_msg = format_error(
+                "tool_not_found",
+                tool_name=func_name,
+                available_tools=get_available_tools_message(available)
+            )
             if call_id:
                 audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
             return error_msg
@@ -225,7 +242,11 @@ class ToolExecutor:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.error("⏱️ Timeout: %s", e)
-            error_msg = f"Ошибка таймаута: {e}"
+            error_msg = format_error(
+                "timeout_error",
+                tool_name=func_name,
+                timeout=self.timeout
+            )
             if call_id:
                 audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
             return error_msg
@@ -233,7 +254,13 @@ class ToolExecutor:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.error("💥 Tool Execution Error: %s", e)
-            error_msg = f"Ошибка выполнения: {e}"
+            error_msg = format_error(
+                "unexpected_error",
+                error_type_name=type(e).__name__,
+                error_message=str(e),
+                message=f"Ошибка выполнения '{func_name}'",
+                suggestion="Проверьте параметры инструмента и попробуйте снова."
+            )
             if call_id:
                 audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
             return error_msg
@@ -242,7 +269,13 @@ class ToolExecutor:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.exception("💥 Unexpected Error: %s", e)
-            error_msg = f"Неожиданная ошибка: {type(e).__name__}: {e}"
+            error_msg = format_error(
+                "unexpected_error",
+                error_type_name=type(e).__name__,
+                error_message=str(e),
+                message=f"Неожиданная ошибка в '{func_name}'",
+                suggestion="Проверьте логи для деталей."
+            )
             if call_id:
                 audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
             return error_msg

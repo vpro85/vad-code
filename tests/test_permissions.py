@@ -90,8 +90,9 @@ class TestExecutorPermissions:
             try:
                 call_text = json5.dumps({"tool": "dangerous_tool", "arguments": {}})
                 result = await executor.execute(call_text)
-                assert "Ошибка доступа" in result
-                assert "запрещен" in result
+                assert "Доступ запрещен" in result
+                assert "dangerous" in result
+                assert "💡" in result
             finally:
                 permission_manager.allowed_levels = original
 
@@ -144,6 +145,7 @@ class TestExecutorPermissions:
         try:
             call_text = json5.dumps({"tool": "write_tool", "arguments": {}})
             result = await executor.execute(call_text)
-            assert "Ошибка доступа" in result
+            assert "Доступ запрещен" in result
+            assert "💡" in result
         finally:
             permission_manager.allowed_levels = original
