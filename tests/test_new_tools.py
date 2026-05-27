@@ -87,3 +87,51 @@ def test_format_code_not_installed(tools, tmp_path):
     with patch('subprocess.run', side_effect=FileNotFoundError()):
         result = tools.format_code(path="src/", tool="black")
         assert "не установлен" in result
+
+
+def test_install_package_success(tools, tmp_path):
+    """Проверяет успешную установку пакета."""
+    with patch('subprocess.run') as mock_run:
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="Successfully installed requests-2.31.0",
+            stderr=""
+        )
+        result = tools.install_package(package="requests")
+        assert "успешно установлен" in result
+        assert "requests" in result
+
+
+def test_install_package_upgrade(tools, tmp_path):
+    """Проверяет обновление пакета."""
+    with patch('subprocess.run') as mock_run:
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="Successfully installed requests-2.32.0",
+            stderr=""
+        )
+        result = tools.install_package(package="requests", upgrade=True)
+        assert "успешно установлен" in result
+        call_args = mock_run.call_args[0][0]
+        assert "--upgrade" in call_args
+
+
+def test_install_package_error(tools, tmp_path):
+    """Проверяет ошибку при установке."""
+    with patch('subprocess.run') as mock_run:
+        mock_run.return_value = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="ERROR: Could not find a version that satisfies the requirement"
+        )
+        result = tools.install_package(package="nonexistent-package")
+        assert "Код выхода: 1" in result
+        assert "ERROR" in result
+
+
+def test_install_package_timeout(tools, tmp_path):
+    """Проверяет таймаут при установке."""
+    import subprocess
+    with patch('subprocess.run', side_effect=subprocess.TimeoutExpired(cmd=["pip"], timeout=120)):
+        result = tools.install_package(package="huge-package")
+        assert "Ошибка" in result

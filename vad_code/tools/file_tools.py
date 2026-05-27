@@ -97,6 +97,9 @@ class FileTools:
     def format_code(self, path: str = ".", tool: str = "black", check_only: bool = False) -> str:
         return self._command_tools.format_code(path, tool, check_only)
 
+    def install_package(self, package: str, upgrade: bool = False, user_install: bool = False) -> str:
+        return self._command_tools.install_package(package, upgrade, user_install)
+
     # BadCaseTools
     def report_bad_case(
         self,

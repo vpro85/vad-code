@@ -149,6 +149,13 @@ class FormatCodeSchema(BaseModel):
     check_only: bool = Field(False, description="Только проверка без изменения файлов")
 
 
+class InstallPackageSchema(BaseModel):
+    """Схема для установки Python-пакетов."""
+    package: str = Field(..., description="Имя пакета для установки (например, 'requests' или 'numpy>=1.21')")
+    upgrade: bool = Field(False, description="Обновить пакет до последней версии")
+    user_install: bool = Field(False, description="Установить в пользовательскую директорию")
+
+
 # --- Проблемные случаи ---
 
 class ReportBadCaseSchema(BaseModel):

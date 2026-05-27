@@ -6,7 +6,7 @@ import subprocess
 
 from ..infrastructure.file_system import FileSystemService
 from .permissions import register_tool, ToolRiskLevel
-from .schemas import RunCommandSchema, RunTestsSchema, FormatCodeSchema
+from .schemas import RunCommandSchema, RunTestsSchema, FormatCodeSchema, InstallPackageSchema
 
 _ALLOWED_COMMANDS = {"pytest", "pylint", "flake8", "mypy"}
 
@@ -154,3 +154,46 @@ class CommandTools:
             return f"Ошибка: время форматирования истекло (таймаут 60с)."
         except (OSError, ValueError) as e:
             return f"Ошибка при форматировании кода: {e}"
+
+    @register_tool(
+        "устанавливает Python-пакет через pip",
+        schema=InstallPackageSchema,
+        risk_level=ToolRiskLevel.DANGEROUS,
+    )
+    def install_package(self, package: str, upgrade: bool = False, user_install: bool = False) -> str:
+        """Устанавливает или обновляет Python-пакет."""
+        try:
+            args = ["pip", "install"]
+            if upgrade:
+                args.append("--upgrade")
+            if user_install:
+                args.append("--user")
+            args.append(package)
+
+            result = subprocess.run(
+                args,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=self.fs.root,
+                check=False,
+            )
+
+            stdout = result.stdout
+            stderr = result.stderr
+            exit_code = result.returncode
+
+            if exit_code == 0:
+                return f"Пакет '{package}' успешно установлен.\n{stdout}"
+
+            output = f"Код выхода: {exit_code}\n"
+            if stdout:
+                output += f"STDOUT:\n{stdout}\n"
+            if stderr:
+                output += f"STDERR:\n{stderr}\n"
+            return output
+
+        except subprocess.TimeoutExpired:
+            return "Ошибка: время установки пакета истекло (таймаут 120с)."
+        except (OSError, ValueError) as e:
+            return f"Ошибка при установке пакета: {e}"
