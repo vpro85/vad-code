@@ -9,7 +9,7 @@ from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_providers import create_provider
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
-from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
+from vad_code.tools import FileTools, TOOL_REGISTRY
 from vad_code.tools.git_tools import GitTools
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 

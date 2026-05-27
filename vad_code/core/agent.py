@@ -10,7 +10,7 @@ from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.infrastructure.bad_cases import bad_case_manager
 from vad_code.core.memory import ConversationMemory
-from vad_code.tools.file_tools import TOOL_REGISTRY
+from vad_code.tools import TOOL_REGISTRY
 
 MAX_OBSERVATION_CHARS = 30_000
 

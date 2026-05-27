@@ -51,7 +51,7 @@ def register_tool(
         risk_level: Уровень риска инструмента.
     """
     # Импортируем здесь, чтобы избежать циклических импортов
-    from vad_code.tools.file_tools import TOOL_REGISTRY
+    from vad_code.tools import TOOL_REGISTRY
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         TOOL_REGISTRY[func.__name__] = {
