@@ -8,6 +8,7 @@ from vad_code.core.agent import Agent
 from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_providers import create_provider
 from vad_code.infrastructure.logger import log
+from vad_code.infrastructure.metrics import format_metrics, reset_metrics
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.tools import FileTools, TOOL_REGISTRY
 from vad_code.tools.git_tools import GitTools
@@ -154,7 +155,8 @@ async def run(args: argparse.Namespace) -> None:
                 break
             if user_input.lower() == "/reset":
                 agent.reset_history()
-                log.info("🧹 История очищена.")
+                reset_metrics()
+                log.info("🧹 История и метрики сброшены.")
                 continue
             if user_input.lower() == "/undo":
                 result = agent.undo()
@@ -181,18 +183,23 @@ async def run(args: argparse.Namespace) -> None:
                 audit_stats = agent.get_audit_stats()
                 log.info("%s", audit_stats)
                 continue
+            if user_input.lower() == "/metrics":
+                metrics = format_metrics()
+                log.info("%s", metrics)
+                continue
             if user_input.lower() == "/stats":
                 agent.print_stats()
                 continue
             if user_input.lower() == "/help":
                 log.info(
                     "\n📖 Доступные команды:\n"
-                    "  /reset      - очистить историю\n"
+                    "  /reset      - очистить историю и метрики\n"
                     "  /undo       - отменить последнее изменение файла\n"
                     "  /redo       - повторить отмененное изменение\n"
                     "  /history    - показать историю изменений файлов\n"
                     "  /audit      - показать журнал аудита действий\n"
                     "  /audit-stats - показать статистику вызовов инструментов\n"
+                    "  /metrics    - показать метрики сессии (время, токены, инструменты)\n"
                     "  /stats      - показать статистику сессии\n"
                     "  /help       - показать это сообщение\n"
                     "  exit/quit   - выйти\n"
