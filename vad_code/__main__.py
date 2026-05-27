@@ -14,7 +14,7 @@ from vad_code.tools import FileTools, TOOL_REGISTRY
 from vad_code.tools.git_tools import GitTools
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 
 def parse_args() -> argparse.Namespace:
