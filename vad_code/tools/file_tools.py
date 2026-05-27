@@ -91,6 +91,12 @@ class FileTools:
     def run_command(self, command: str) -> str:
         return self._command_tools.run_command(command)
 
+    def run_tests(self, path: str = ".", verbose: bool = True, timeout: int = 120) -> str:
+        return self._command_tools.run_tests(path, verbose, timeout)
+
+    def format_code(self, path: str = ".", tool: str = "black", check_only: bool = False) -> str:
+        return self._command_tools.format_code(path, tool, check_only)
+
     # BadCaseTools
     def report_bad_case(
         self,

@@ -135,6 +135,20 @@ class RunCommandSchema(BaseModel):
     )
 
 
+class RunTestsSchema(BaseModel):
+    """Схема для запуска тестов."""
+    path: str = Field(".", description="Путь к файлу или директории с тестами")
+    verbose: bool = Field(True, description="Подробный вывод")
+    timeout: int = Field(120, description="Таймаут в секундах", ge=10, le=600)
+
+
+class FormatCodeSchema(BaseModel):
+    """Схема для форматирования кода."""
+    path: str = Field(".", description="Путь к файлу или директории")
+    tool: str = Field("black", description="Инструмент форматирования: black, autopep8, isort")
+    check_only: bool = Field(False, description="Только проверка без изменения файлов")
+
+
 # --- Проблемные случаи ---
 
 class ReportBadCaseSchema(BaseModel):
