@@ -1,4 +1,5 @@
 """Модуль исполнителя инструментов."""
+import asyncio
 import inspect
 from typing import Any, Callable, Optional
 
@@ -8,14 +9,43 @@ from vad_code.infrastructure.logger import log
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
 
+class ToolExecutionError(Exception):
+    """Базовое исключение для ошибок выполнения инструментов."""
+    pass
+
+
+class ToolValidationError(ToolExecutionError):
+    """Ошибка валидации аргументов."""
+    pass
+
+
+class ToolPermissionError(ToolExecutionError):
+    """Ошибка доступа к инструменту."""
+    pass
+
+
+class ToolNotFoundError(ToolExecutionError):
+    """Инструмент не найден."""
+    pass
+
+
+class ToolTimeoutError(ToolExecutionError):
+    """Превышено время выполнения инструмента."""
+    pass
+
+
 class ToolExecutor:
     """Класс, отвечающий исключительно за выполнение зарегистрированных инструментов."""
 
-    def __init__(self) -> None:
+    # Таймаут для выполнения инструментов (в секундах)
+    DEFAULT_TIMEOUT = 120
+
+    def __init__(self, timeout: Optional[int] = None) -> None:
         # Храним функции, их схемы и метаданные (включая уровень риска)
         self.tools: dict[str, Callable[..., Any]] = {}
         self.schemas: dict[str, Any] = {}
         self.metadata: dict[str, dict[str, Any]] = {}
+        self.timeout = timeout or self.DEFAULT_TIMEOUT
 
     def register_tool(self, name: str, func: Callable[..., Any], schema: Any = None, metadata: Optional[dict[str, Any]] = None) -> None:
         """Регистрация инструмента: имя, сама функция, Pydantic-схема и метаданные."""
@@ -25,58 +55,124 @@ class ToolExecutor:
         if metadata:
             self.metadata[name] = metadata
 
+    def _parse_call_data(self, call_text: str) -> dict[str, Any]:
+        """Парсит JSON-данные вызова инструмента."""
+        try:
+            call_data = json5.loads(call_text)
+        except ValueError as e:
+            raise ToolValidationError(f"Ошибка парсинга JSON: {e}") from e
+
+        if not isinstance(call_data, dict):
+            raise ToolValidationError("JSON должен быть объектом (словарем).")
+
+        return call_data
+
+    def _validate_tool_name(self, func_name: Optional[str]) -> str:
+        """Валидирует имя инструмента."""
+        if not func_name:
+            raise ToolValidationError("В JSON не указано поле 'tool'.")
+        if not isinstance(func_name, str):
+            raise ToolValidationError("Поле 'tool' должно быть строкой.")
+        if not func_name.strip():
+            raise ToolValidationError("Поле 'tool' не может быть пустым.")
+        return func_name.strip()
+
+    def _check_permissions(self, func_name: str) -> None:
+        """Проверяет разрешения для инструмента."""
+        tool_meta = self.metadata.get(func_name, {})
+        risk_level = tool_meta.get("risk_level", ToolRiskLevel.READ)
+
+        if not permission_manager.is_allowed(risk_level):
+            raise ToolPermissionError(
+                f"Инструмент '{func_name}' (уровень риска: {risk_level.value}) "
+                f"запрещен текущими настройками безопасности."
+            )
+
+    def _validate_arguments(self, func_name: str, args: dict[str, Any]) -> dict[str, Any]:
+        """Валидирует аргументы через Pydantic-схему."""
+        if func_name not in self.schemas:
+            return args
+
+        schema = self.schemas[func_name]
+        try:
+            validated_model = schema.model_validate(args)
+            return validated_model.model_dump()
+        except (ValueError, TypeError) as e:
+            raise ToolValidationError(f"Ошибка валидации аргументов для '{func_name}': {e}") from e
+
+    def _find_tool(self, func_name: str) -> Callable[..., Any]:
+        """Находит зарегистрированный инструмент."""
+        if func_name not in self.tools:
+            available_tools = ", ".join(sorted(self.tools.keys())) if self.tools else "нет"
+            raise ToolNotFoundError(
+                f"Инструмент '{func_name}' не зарегистрирован. "
+                f"Доступные инструменты: {available_tools}"
+            )
+        return self.tools[func_name]
+
+    async def _execute_tool(self, func: Callable[..., Any], args: dict[str, Any]) -> Any:
+        """Выполняет инструмент с таймаутом."""
+        try:
+            if inspect.iscoroutinefunction(func):
+                return await asyncio.wait_for(func(**args), timeout=self.timeout)
+            else:
+                loop = asyncio.get_event_loop()
+                return await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: func(**args)),
+                    timeout=self.timeout
+                )
+        except asyncio.TimeoutError:
+            raise ToolTimeoutError(
+                f"Превышено время выполнения инструмента (таймаут: {self.timeout}с)"
+            )
+
     async def execute(self, call_text: str) -> Optional[str]:
         """Выполняет зарегистрированный инструмент."""
         try:
-            call_data = json5.loads(call_text)
+            # 1. Парсинг JSON
+            call_data = self._parse_call_data(call_text)
             func_name = call_data.get("tool")
             args = call_data.get("arguments", {})
 
-            if not func_name:
-                return "Ошибка: В JSON не указано поле 'tool'."
+            # 2. Валидация имени инструмента
+            func_name = self._validate_tool_name(func_name)
 
-            # --- Проверка разрешений ---
-            tool_meta = self.metadata.get(func_name, {})
-            risk_level = tool_meta.get("risk_level", ToolRiskLevel.READ)
-            
-            if not permission_manager.is_allowed(risk_level):
-                error_msg = f"Ошибка доступа: Инструмент '{func_name}' (уровень риска: {risk_level.value}) запрещен текущими настройками безопасности."
-                log.warning("🚫 Permission Denied: %s", error_msg)
-                return error_msg
-            # --------------------------
+            # 3. Проверка разрешений
+            self._check_permissions(func_name)
 
-            # --- ДОБАВЛЕНО: Лог начала вызова ---
+            # 4. Лог начала вызова
             log.debug("🛠️ Tool Call: %s(%s)", func_name, args)
-            # ------------------------------------
 
-            final_args = args
-            if func_name in self.schemas:
-                schema = self.schemas[func_name]
-                try:
-                    validated_model = schema.model_validate(args)
-                    final_args = validated_model.model_dump()
-                except (ValueError, TypeError) as e:
-                    error_msg = f"Ошибка валидации аргументов: {e}"
-                    log.error("❌ Validation Error: %s", error_msg)
-                    return error_msg
+            # 5. Валидация аргументов
+            final_args = self._validate_arguments(func_name, args)
 
-            if func_name not in self.tools:
-                error_msg = f"Ошибка: Инструмент '{func_name}' не зарегистрирован."
-                log.error("❌ Tool Not Found: %s", error_msg)
-                return error_msg
+            # 6. Поиск инструмента
+            func = self._find_tool(func_name)
 
-            func = self.tools[func_name]
-            if inspect.iscoroutinefunction(func):
-                result = await func(**final_args)
-            else:
-                result = func(**final_args)
+            # 7. Выполнение
+            result = await self._execute_tool(func, final_args)
 
-            # --- ДОБАВЛЕНО: Лог успеха ---
+            # 8. Лог успеха
             log.debug("✅ Success: %s completed.", func_name)
-            # -----------------------------
 
             return str(result) if result is not None else "Success"
-        except (ValueError, TypeError, OSError) as e:
-            error_msg = f"Ошибка при выполнении инструмента: {str(e)}"
-            log.error("💥 Critical Error: %s", error_msg)
-            return error_msg
+
+        except ToolValidationError as e:
+            log.error("❌ Validation Error: %s", e)
+            return f"Ошибка валидации: {e}"
+        except ToolPermissionError as e:
+            log.warning("🚫 Permission Denied: %s", e)
+            return f"Ошибка доступа: {e}"
+        except ToolNotFoundError as e:
+            log.error("❌ Tool Not Found: %s", e)
+            return f"Ошибка: {e}"
+        except ToolTimeoutError as e:
+            log.error("⏱️ Timeout: %s", e)
+            return f"Ошибка таймаута: {e}"
+        except ToolExecutionError as e:
+            log.error("💥 Tool Execution Error: %s", e)
+            return f"Ошибка выполнения: {e}"
+        except Exception as e:
+            # Неожиданные ошибки
+            log.exception("💥 Unexpected Error: %s", e)
+            return f"Неожиданная ошибка: {type(e).__name__}: {e}"

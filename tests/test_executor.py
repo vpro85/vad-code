@@ -67,7 +67,8 @@ async def test_execute_tool_raises_os_error(executor):
     executor.register_tool("failing", failing_tool)
     call_text = json5.dumps({"tool": "failing", "arguments": {}})
     result = await executor.execute(call_text)
-    assert "Ошибка при выполнении инструмента" in result
+    assert "Неожиданная ошибка" in result
+    assert "OSError" in result
 
 
 @pytest.mark.anyio
@@ -80,7 +81,8 @@ async def test_execute_tool_raises_type_error(executor):
     executor.register_tool("type_error", type_error_tool)
     call_text = json5.dumps({"tool": "type_error", "arguments": {"x": 123}})
     result = await executor.execute(call_text)
-    assert "Ошибка при выполнении инструмента" in result
+    assert "Неожиданная ошибка" in result
+    assert "TypeError" in result
 
 
 @pytest.mark.anyio
@@ -122,7 +124,7 @@ async def test_execute_empty_tool_name(executor):
     """Тест с пустым именем инструмента."""
     call_text = json5.dumps({"tool": "", "arguments": {}})
     result = await executor.execute(call_text)
-    assert "Ошибка: В JSON не указано поле 'tool'." == result
+    assert "Ошибка валидации" in result
 
 
 @pytest.mark.anyio
@@ -136,3 +138,50 @@ async def test_execute_tool_with_no_arguments_key(executor):
     call_text = json5.dumps({"tool": "no_args"})
     result = await executor.execute(call_text)
     assert result == "ok"
+
+
+@pytest.mark.anyio
+async def test_execute_tool_timeout(executor):
+    """Тест таймаута при выполнении инструмента."""
+    import asyncio
+
+    async def slow_tool():
+        await asyncio.sleep(10)
+        return "done"
+
+    executor.register_tool("slow", slow_tool)
+    executor.timeout = 0.1  # Очень маленький таймаут для теста
+    call_text = json5.dumps({"tool": "slow", "arguments": {}})
+    result = await executor.execute(call_text)
+    assert "Ошибка таймаута" in result
+
+
+@pytest.mark.anyio
+async def test_execute_invalid_json(executor):
+    """Тест обработки невалидного JSON."""
+    result = await executor.execute("{invalid json}")
+    assert "Ошибка валидации" in result
+
+
+@pytest.mark.anyio
+async def test_execute_json_not_object(executor):
+    """Тест обработки JSON, который не является объектом."""
+    result = await executor.execute("[1, 2, 3]")
+    assert "Ошибка валидации" in result
+
+
+@pytest.mark.anyio
+async def test_execute_tool_name_not_string(executor):
+    """Тест обработки имени инструмента, которое не является строкой."""
+    result = await executor.execute(json5.dumps({"tool": 123, "arguments": {}}))
+    assert "Ошибка валидации" in result
+
+
+@pytest.mark.anyio
+async def test_execute_tool_not_found_shows_available(executor):
+    """Тест, что при отсутствии инструмента показываются доступные."""
+    executor.register_tool("existing_tool", lambda: "ok")
+    call_text = json5.dumps({"tool": "nonexistent", "arguments": {}})
+    result = await executor.execute(call_text)
+    assert "не зарегистрирован" in result
+    assert "existing_tool" in result

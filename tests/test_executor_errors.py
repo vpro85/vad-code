@@ -15,14 +15,16 @@ def executor():
 async def test_execute_invalid_json(executor):
     """Тест на передачу невалидного JSON."""
     result = await executor.execute("{ 'broken': json }")
-    assert "Ошибка при выполнении инструмента" in result
+    assert "Ошибка валидации" in result
+
 
 @pytest.mark.anyio
 async def test_execute_missing_tool_field(executor):
     """Тест на отсутствие поля 'tool' в JSON."""
     call_text = json5.dumps({"arguments": {"some": "data"}})
     result = await executor.execute(call_text)
-    assert "Ошибка: В JSON не указано поле 'tool'." == result
+    assert "Ошибка валидации" in result
+    assert "поле 'tool'" in result
 
 @pytest.mark.anyio
 async def test_execute_validation_error(executor):
