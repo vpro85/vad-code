@@ -11,6 +11,7 @@ from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.tools.file_tools import FileTools, TOOL_REGISTRY
 from vad_code.tools.git_tools import GitTools
+from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
 VERSION = "0.3.0"
 
@@ -80,10 +81,30 @@ async def run(args: argparse.Namespace) -> None:
     if args.max_iterations:
         settings.max_iterations = args.max_iterations
 
+    # Настройка разрешений
+    allowed_levels_str = settings.allowed_tool_risk_levels.lower()
+    if allowed_levels_str == "all":
+        allowed_levels = None
+    else:
+        allowed_levels = []
+        for level_str in allowed_levels_str.split(","):
+            level_str = level_str.strip()
+            if level_str == "read":
+                allowed_levels.append(ToolRiskLevel.READ)
+            elif level_str == "write":
+                allowed_levels.append(ToolRiskLevel.WRITE)
+            elif level_str == "dangerous":
+                allowed_levels.append(ToolRiskLevel.DANGEROUS)
+        if not allowed_levels:
+            allowed_levels = None # Если строка пустая, разрешаем всё
+    
+    permission_manager.allowed_levels = allowed_levels
+    
     log.info("🚀 AI-OS Bridge запущен (v%s).", VERSION)
     log.info("LLM-провайдер: %s", settings.llm_provider)
     log.info("Модель: %s", settings.llm_model)
-    log.info("Рабочая директория: %s\n", settings.project_root)
+    log.info("Рабочая директория: %s", settings.project_root)
+    log.info("Разрешенные уровни риска: %s\n", settings.allowed_tool_risk_levels)
 
     # 1. Создаем инфраструктурные компоненты
     llm_provider = create_provider(
@@ -104,10 +125,10 @@ async def run(args: argparse.Namespace) -> None:
     for name, info in TOOL_REGISTRY.items():
         if hasattr(file_tools, name):
             method = getattr(file_tools, name)
-            executor.register_tool(name, method, schema=info.get("schema"))
+            executor.register_tool(name, method, schema=info.get("schema"), metadata=info)
         elif hasattr(git_tools, name):
             method = getattr(git_tools, name)
-            executor.register_tool(name, method, schema=info.get("schema"))
+            executor.register_tool(name, method, schema=info.get("schema"), metadata=info)
 
     agent = Agent(llm_client=llm_provider, executor=executor, tokenizer=tokenizer)
 

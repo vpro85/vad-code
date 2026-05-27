@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from ..infrastructure.file_system import FileSystemService
 from ..infrastructure.bad_cases import bad_case_manager
+from .permissions import register_tool, ToolRiskLevel
 
 
 class SimpleLRUCache:
@@ -66,21 +67,7 @@ _MAX_SEARCH_RESULTS = 50
 _ALLOWED_COMMANDS = {"pytest", "pylint", "flake8", "mypy"}
 
 
-def register_tool(
-    description: str,
-    schema: Optional[Type[BaseModel]] = None,
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Декоратор для автоматической регистрации методов как инструментов AI."""
 
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        TOOL_REGISTRY[func.__name__] = {
-            "description": description,
-            "schema": schema,
-            "func_name": func.__name__,
-        }
-        return func
-
-    return decorator
 
 
 # --- Схемы валидации аргументов ---
@@ -246,6 +233,7 @@ class FileTools:
     @register_tool(
         "возвращает плоский список файлов в папке (без рекурсии).",
         schema=ListFilesSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def list_files(self, path: str = ".") -> str:
         """Возвращает список файлов в директории."""
@@ -259,6 +247,7 @@ class FileTools:
         "возвращает дерево файлов рекурсивно — предпочтительный способ "
         "изучить структуру проекта.",
         schema=ListTreeSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def list_tree(self, path: str = ".", depth: int = 2) -> str:
         """Возвращает дерево файлов."""
@@ -286,7 +275,7 @@ class FileTools:
         except (OSError, ValueError) as e:
             return f"Ошибка при построении дерева: {e}"
 
-    @register_tool("читает содержимое файла.", schema=ReadFileSchema)
+    @register_tool("читает содержимое файла.", schema=ReadFileSchema, risk_level=ToolRiskLevel.READ)
     def read_file(self, path: str) -> str:
         """Читает содержимое файла."""
         try:
@@ -302,7 +291,7 @@ class FileTools:
         except (OSError, ValueError) as e:
             return f"Ошибка при чтении файла: {e}"
 
-    @register_tool("записывает текст в файл (перезаписывает).", schema=WriteFileSchema)
+    @register_tool("записывает текст в файл (перезаписывает).", schema=WriteFileSchema, risk_level=ToolRiskLevel.WRITE)
     def write_file(self, path: str, content: str) -> str:
         """Записывает текст в файл."""
         try:
@@ -313,7 +302,7 @@ class FileTools:
             return f"Ошибка при записи файла {path}: {e}"
 
     @register_tool(
-        "заменяет старый текст на новый в файле.", schema=ReplaceInFileSchema
+        "заменяет старый текст на новый в файле.", schema=ReplaceInFileSchema, risk_level=ToolRiskLevel.WRITE
     )
     def replace_in_file(self, path: str, old_text: str, new_text: str) -> str:
         """Заменяет текст в файле."""
@@ -328,6 +317,7 @@ class FileTools:
         "ищет строку или regex в файлах проекта — используй вместо "
         "последовательных read_file.",
         schema=SearchInFilesSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def search_in_files(
         self, query: str, path: str = ".", file_glob: str = "*.py"
@@ -371,6 +361,7 @@ class FileTools:
         "читает определенный диапазон строк из файла. "
         "Полезно для больших файлов.",
         schema=ReadFileLinesSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def read_file_lines(self, path: str, start_line: int, end_line: int) -> str:
         """Читает диапазон строк из файла."""
@@ -393,7 +384,7 @@ class FileTools:
         except (OSError, ValueError) as e:
             return f"Ошибка при чтении строк файла: {e}"
 
-    @register_tool("создает новую директорию", schema=CreateDirSchema)
+    @register_tool("создает новую директорию", schema=CreateDirSchema, risk_level=ToolRiskLevel.WRITE)
     def create_dir(self, path: str) -> str:
         """Создает директорию."""
         try:
@@ -403,7 +394,7 @@ class FileTools:
             return f"Ошибка при создании директории {path}: {e}"
 
     @register_tool(
-        "перемещает или переименовывает файл/директорию", schema=MoveFileSchema
+        "перемещает или переименовывает файл/директорию", schema=MoveFileSchema, risk_level=ToolRiskLevel.WRITE
     )
     def move_file(self, src: str, dst: str) -> str:
         """Перемещает файл или директорию."""
@@ -414,7 +405,7 @@ class FileTools:
         except (OSError, ValueError) as e:
             return f"Ошибка при перемещении {src} -> {dst}: {e}"
 
-    @register_tool("удаляет файл или директорию", schema=DeleteFileSchema)
+    @register_tool("удаляет файл или директорию", schema=DeleteFileSchema, risk_level=ToolRiskLevel.DANGEROUS)
     def delete_file(self, path: str) -> str:
         """Удаляет файл или директорию."""
         try:
@@ -427,6 +418,7 @@ class FileTools:
     @register_tool(
         "запускает тесты или другие разрешенные команды в терминале",
         schema=RunCommandSchema,
+        risk_level=ToolRiskLevel.DANGEROUS,
     )
     def run_command(self, command: str) -> str:
         """Запускает команду в терминале."""
@@ -473,6 +465,7 @@ class FileTools:
     @register_tool(
         "копирует файл или директорию",
         schema=CopyFileSchema,
+        risk_level=ToolRiskLevel.WRITE,
     )
     def copy_file(self, src: str, dst: str) -> str:
         """Копирует файл или директорию."""
@@ -485,6 +478,7 @@ class FileTools:
     @register_tool(
         "возвращает размер файла в байтах или общий размер директории",
         schema=GetFileSizeSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def get_file_size(self, path: str) -> str:
         """Возвращает размер файла или директории."""
@@ -506,6 +500,7 @@ class FileTools:
     @register_tool(
         "находит файлы по шаблону имени (рекурсивно)",
         schema=FindFilesSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def find_files(self, pattern: str, directory: str = ".") -> str:
         """Находит файлы по шаблону."""
@@ -520,6 +515,7 @@ class FileTools:
     @register_tool(
         "просмотр последних N строк файла (аналог tail)",
         schema=TailFileSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def tail_file(self, path: str, num_lines: int = 20) -> str:
         """Возвращает последние N строк файла."""
@@ -532,6 +528,7 @@ class FileTools:
     @register_tool(
         "просмотр первых N строк файла (аналог head)",
         schema=HeadFileSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def head_file(self, path: str, num_lines: int = 20) -> str:
         """Возвращает первые N строк файла."""

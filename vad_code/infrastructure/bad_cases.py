@@ -3,7 +3,7 @@ import json
 import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from vad_code.config import settings
 from vad_code.infrastructure.logger import log
@@ -20,15 +20,15 @@ class BadCase:
     ai_response: str
     error_type: str  # parse_error, missing_tool_key, invalid_json, no_call_detected
     error_details: str = ""
-    context: dict = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
     resolved: bool = False
     resolution_notes: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "BadCase":
+    def from_dict(cls, data: dict[str, Any]) -> "BadCase":
         return cls(**data)
 
 
@@ -67,7 +67,7 @@ class BadCaseManager:
         ai_response: str,
         error_type: str,
         error_details: str = "",
-        context: Optional[dict] = None,
+        context: Optional[dict[str, Any]] = None,
     ) -> str:
         """
         Добавляет новый проблемный случай.
@@ -126,7 +126,7 @@ class BadCaseManager:
             return True
         return False
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """Возвращает статистику по проблемным случаям."""
         if not self.cases:
             return {"total": 0, "resolved": 0, "unresolved": 0, "by_type": {}}
