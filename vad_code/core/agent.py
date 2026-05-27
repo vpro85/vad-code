@@ -8,6 +8,7 @@ from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_providers import BaseLLMProvider
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
+from vad_code.infrastructure.bad_cases import bad_case_manager
 from vad_code.core.memory import ConversationMemory
 from vad_code.tools.file_tools import TOOL_REGISTRY
 
@@ -119,6 +120,41 @@ class Agent:
         return candidates[-1] if candidates else None
 
     @staticmethod
+    def _balance_braces(text: str) -> str:
+        """Балансирует фигурные и квадратные скобки в тексте."""
+        # Считаем баланс скобок, игнорируя те, что внутри строк
+        in_string = False
+        escape_next = False
+        brace_count = 0  # для {}
+        bracket_count = 0  # для []
+        for char in text:
+            if escape_next:
+                escape_next = False
+                continue
+            if char == '\\':
+                escape_next = True
+                continue
+            if char == '"' and not escape_next:
+                in_string = not in_string
+                continue
+            if not in_string:
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                elif char == '[':
+                    bracket_count += 1
+                elif char == ']':
+                    bracket_count -= 1
+        # Добавляем недостающие закрывающие скобки
+        result = text
+        if brace_count > 0:
+            result += '}' * brace_count
+        if bracket_count > 0:
+            result += ']' * bracket_count
+        return result
+
+    @staticmethod
     def _try_parse_json(text: str) -> bool:
         """Пытается распарсить текст как JSON и проверить наличие ключа 'tool'."""
         try:
@@ -126,9 +162,11 @@ class Agent:
             return isinstance(data, dict) and "tool" in data
         except ValueError:
             # Пытаемся исправить распространенные ошибки JSON от LLM
-            # Например, неэкранированные переносы строк внутри строк
+            # 1. Неэкранированные переносы строк внутри строк
+            # 2. Незакрытые фигурные/квадратные скобки
             try:
                 fixed_text = re.sub(r'(?<!\\)\n', '\\n', text)
+                fixed_text = Agent._balance_braces(fixed_text)
                 data = json5.loads(fixed_text)
                 return isinstance(data, dict) and "tool" in data
             except ValueError:
@@ -199,6 +237,14 @@ class Agent:
                 if observation is None:
                     # Невалидный вызов — считаем финальным ответом
                     self.session_stats["errors"] += 1
+                    # Сохраняем проблемный случай
+                    bad_case_manager.add_case(
+                        user_input=user_input,
+                        ai_response=ai_response,
+                        error_type="invalid_call",
+                        error_details="Вызов инструмента распознан, но не выполнен",
+                        context={"iteration": i + 1},
+                    )
                     log.info("\n🤖 AI: %s\n", ai_response)
                     return
 
@@ -215,6 +261,8 @@ class Agent:
                     "user", f"OBSERVATION: {self._truncate_observation(observation)}"
                 )
             else:
+                # AI не сгенерировал вызов инструмента - это потенциально проблемный случай
+                # если пользователь ожидал действия
                 log.info("\n🤖 AI: %s\n", ai_response)
                 return
 
