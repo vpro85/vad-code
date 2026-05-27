@@ -6,6 +6,7 @@ from typing import Any, Callable, Optional
 import json5
 
 from vad_code.infrastructure.logger import log
+from vad_code.infrastructure.backup_manager import backup_manager
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
 
@@ -126,6 +127,19 @@ class ToolExecutor:
                 f"Превышено время выполнения инструмента (таймаут: {self.timeout}с)"
             )
 
+    def _get_affected_file_path(self, func_name: str, args: dict[str, Any]) -> Optional[str]:
+        """Пытается определить путь к файлу, который будет изменен."""
+        # Приоритетные имена аргументов, содержащих путь
+        path_keys = ["path", "file_path", "src", "source", "filename", "target", "dst", "destination"]
+        for key in path_keys:
+            if key in args and isinstance(args[key], str):
+                return args[key]
+        # Если не нашли, возвращаем первый строковый аргумент
+        for val in args.values():
+            if isinstance(val, str):
+                return val
+        return None
+
     async def execute(self, call_text: str) -> Optional[str]:
         """Выполняет зарегистрированный инструмент."""
         try:
@@ -145,6 +159,15 @@ class ToolExecutor:
 
             # 5. Валидация аргументов
             final_args = self._validate_arguments(func_name, args)
+
+            # 5.5. Создание бэкапа перед изменением (для WRITE и DANGEROUS)
+            tool_meta = self.metadata.get(func_name, {})
+            risk_level = tool_meta.get("risk_level", ToolRiskLevel.READ)
+            
+            if risk_level in (ToolRiskLevel.WRITE, ToolRiskLevel.DANGEROUS):
+                affected_path = self._get_affected_file_path(func_name, final_args)
+                if affected_path:
+                    backup_manager.create_backup(affected_path, operation=func_name)
 
             # 6. Поиск инструмента
             func = self._find_tool(func_name)

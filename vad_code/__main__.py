@@ -156,15 +156,35 @@ async def run(args: argparse.Namespace) -> None:
                 agent.reset_history()
                 log.info("🧹 История очищена.")
                 continue
+            if user_input.lower() == "/undo":
+                result = agent.undo()
+                log.info("%s", result)
+                continue
+            if user_input.lower() == "/redo":
+                result = agent.redo()
+                log.info("%s", result)
+                continue
+            if user_input.lower() == "/history":
+                history = agent.get_change_history()
+                if not history:
+                    log.info("📜 История изменений пуста.")
+                else:
+                    log.info("📜 История изменений:")
+                    for i, h in enumerate(history, 1):
+                        log.info("  %d. %s -> %s", i, h["operation"], h["file"])
+                continue
             if user_input.lower() == "/stats":
                 agent.print_stats()
                 continue
             if user_input.lower() == "/help":
                 log.info(
                     "\n📖 Доступные команды:\n"
-                    "  /reset  - очистить историю\n"
-                    "  /stats  - показать статистику сессии\n"
-                    "  /help   - показать это сообщение\n"
+                    "  /reset   - очистить историю\n"
+                    "  /undo    - отменить последнее изменение файла\n"
+                    "  /redo    - повторить отмененное изменение\n"
+                    "  /history - показать историю изменений файлов\n"
+                    "  /stats   - показать статистику сессии\n"
+                    "  /help    - показать это сообщение\n"
                     "  exit/quit - выйти\n"
                 )
                 continue

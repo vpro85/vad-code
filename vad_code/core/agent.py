@@ -9,6 +9,7 @@ from vad_code.infrastructure.llm_providers import BaseLLMProvider
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.infrastructure.bad_cases import bad_case_manager
+from vad_code.infrastructure.backup_manager import backup_manager
 from vad_code.core.memory import ConversationMemory
 from vad_code.tools import TOOL_REGISTRY
 
@@ -107,6 +108,18 @@ class Agent:
     def reset_history(self) -> None:
         """Очищает историю сообщений через объект памяти."""
         self.memory.reset()
+
+    def undo(self) -> str:
+        """Отменяет последнее изменение файла."""
+        return backup_manager.undo() or "Нет изменений для отмены."
+
+    def redo(self) -> str:
+        """Повторяет отмененное изменение."""
+        return backup_manager.redo() or "Нет изменений для повтора."
+
+    def get_change_history(self) -> list[dict]:
+        """Возвращает историю изменений файлов."""
+        return backup_manager.get_history()
 
     # ------------------------------------------------------------------
     # Утилиты
