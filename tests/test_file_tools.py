@@ -167,7 +167,7 @@ def test_run_command_allowed(tools, tmp_path):
 
 def test_run_command_forbidden(tools):
     result = tools.run_command("rm -rf /")
-    assert "запрещена" in result
+    assert "Ошибка безопасности" in result
 
 
 def test_copy_file(tools, tmp_path):

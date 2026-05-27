@@ -5,10 +5,9 @@ import shlex
 import subprocess
 
 from ..infrastructure.file_system import FileSystemService
+from ..infrastructure.command_security import command_validator
 from .permissions import register_tool, ToolRiskLevel
 from .schemas import RunCommandSchema, RunTestsSchema, FormatCodeSchema, InstallPackageSchema
-
-_ALLOWED_COMMANDS = {"pytest", "pylint", "flake8", "mypy"}
 
 
 class CommandTools:
@@ -24,23 +23,27 @@ class CommandTools:
     )
     def run_command(self, command: str) -> str:
         """Запускает команду в терминале."""
+        # Проверка безопасности команды
+        is_safe, message = command_validator.validate(command)
+        if not is_safe:
+            return f"Ошибка безопасности: {message}"
+
         try:
             args = shlex.split(command)
             if not args:
                 return "Ошибка: пустая команда."
 
-            base_cmd = args[0]
-            if base_cmd not in _ALLOWED_COMMANDS:
-                return (
-                    f"Ошибка: команда '{base_cmd}' запрещена. "
-                    f"Разрешены только: {', '.join(_ALLOWED_COMMANDS)}"
-                )
+            # Проверка таймаута (по умолчанию 60с, максимум 300с)
+            timeout = 60
+            is_timeout_valid, _ = command_validator.validate_timeout(timeout)
+            if not is_timeout_valid:
+                return "Ошибка: время выполнения превышает допустимый лимит."
 
             result = subprocess.run(
                 args,
                 capture_output=True,
                 text=True,
-                timeout=60,
+                timeout=timeout,
                 cwd=self.fs.root,
                 check=False,
             )
@@ -48,6 +51,13 @@ class CommandTools:
             stdout = result.stdout
             stderr = result.stderr
             exit_code = result.returncode
+
+            # Ограничение размера вывода
+            max_size = command_validator.max_output_size
+            if len(stdout) > max_size:
+                stdout = stdout[:max_size] + "\n... [вывод обрезан]"
+            if len(stderr) > max_size:
+                stderr = stderr[:max_size] + "\n... [вывод обрезан]"
 
             output = f"Код выхода: {exit_code}\n"
             if stdout:
@@ -58,7 +68,7 @@ class CommandTools:
             return output if output.strip() else "Команда выполнена, вывод пуст."
 
         except subprocess.TimeoutExpired:
-            return "Ошибка: время выполнения команды истекло (таймаут 60с)."
+            return f"Ошибка: время выполнения команды истекло (таймаут {timeout}с)."
         except (OSError, ValueError) as e:
             return f"Ошибка при выполнении команды: {e}"
 
