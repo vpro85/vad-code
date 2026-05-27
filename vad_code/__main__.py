@@ -173,19 +173,29 @@ async def run(args: argparse.Namespace) -> None:
                     for i, h in enumerate(history, 1):
                         log.info("  %d. %s -> %s", i, h["operation"], h["file"])
                 continue
+            if user_input.lower() == "/audit":
+                audit_log = agent.get_audit_records()
+                log.info("📝 Журнал аудита:\n%s", audit_log)
+                continue
+            if user_input.lower() == "/audit-stats":
+                audit_stats = agent.get_audit_stats()
+                log.info("%s", audit_stats)
+                continue
             if user_input.lower() == "/stats":
                 agent.print_stats()
                 continue
             if user_input.lower() == "/help":
                 log.info(
                     "\n📖 Доступные команды:\n"
-                    "  /reset   - очистить историю\n"
-                    "  /undo    - отменить последнее изменение файла\n"
-                    "  /redo    - повторить отмененное изменение\n"
-                    "  /history - показать историю изменений файлов\n"
-                    "  /stats   - показать статистику сессии\n"
-                    "  /help    - показать это сообщение\n"
-                    "  exit/quit - выйти\n"
+                    "  /reset      - очистить историю\n"
+                    "  /undo       - отменить последнее изменение файла\n"
+                    "  /redo       - повторить отмененное изменение\n"
+                    "  /history    - показать историю изменений файлов\n"
+                    "  /audit      - показать журнал аудита действий\n"
+                    "  /audit-stats - показать статистику вызовов инструментов\n"
+                    "  /stats      - показать статистику сессии\n"
+                    "  /help       - показать это сообщение\n"
+                    "  exit/quit   - выйти\n"
                 )
                 continue
 

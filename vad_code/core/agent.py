@@ -10,6 +10,7 @@ from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.infrastructure.bad_cases import bad_case_manager
 from vad_code.infrastructure.backup_manager import backup_manager
+from vad_code.infrastructure.audit_logger import audit_logger
 from vad_code.core.memory import ConversationMemory
 from vad_code.tools import TOOL_REGISTRY
 
@@ -120,6 +121,30 @@ class Agent:
     def get_change_history(self) -> list[dict]:
         """Возвращает историю изменений файлов."""
         return backup_manager.get_history()
+
+    def get_audit_records(self, limit: int = 50) -> str:
+        """Возвращает журнал аудита действий."""
+        records = audit_logger.get_records(limit=limit)
+        return audit_logger.format_records(records)
+
+    def get_audit_stats(self) -> str:
+        """Возвращает статистику по вызовам инструментов."""
+        stats = audit_logger.get_stats()
+        lines = [
+            f"📊 Статистика вызовов инструментов:",
+            f"  Всего вызовов: {stats['total_calls']}",
+            f"  Успешных: {stats['successful_calls']}",
+            f"  Ошибок: {stats['failed_calls']}",
+            f"  Среднее время: {stats['avg_duration_ms']}ms"
+        ]
+        if stats['tools_used']:
+            lines.append("\n  По инструментам:")
+            for tool, tool_stats in stats['tools_used'].items():
+                lines.append(
+                    f"    - {tool}: {tool_stats['count']} вызовов, "
+                    f"{tool_stats['avg_duration_ms']}ms среднее"
+                )
+        return "\n".join(lines)
 
     # ------------------------------------------------------------------
     # Утилиты

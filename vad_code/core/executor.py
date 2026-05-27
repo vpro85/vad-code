@@ -7,6 +7,7 @@ import json5
 
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.backup_manager import backup_manager
+from vad_code.infrastructure.audit_logger import audit_logger
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
 
@@ -142,6 +143,10 @@ class ToolExecutor:
 
     async def execute(self, call_text: str) -> Optional[str]:
         """Выполняет зарегистрированный инструмент."""
+        func_name = "unknown"
+        args = {}
+        call_id = None
+
         try:
             # 1. Парсинг JSON
             call_data = self._parse_call_data(call_text)
@@ -154,8 +159,9 @@ class ToolExecutor:
             # 3. Проверка разрешений
             self._check_permissions(func_name)
 
-            # 4. Лог начала вызова
+            # 4. Лог начала вызова и аудит
             log.debug("🛠️ Tool Call: %s(%s)", func_name, args)
+            call_id = audit_logger.start_call(func_name, args)
 
             # 5. Валидация аргументов
             final_args = self._validate_arguments(func_name, args)
@@ -175,27 +181,49 @@ class ToolExecutor:
             # 7. Выполнение
             result = await self._execute_tool(func, final_args)
 
-            # 8. Лог успеха
+            # 8. Лог успеха и аудит
             log.debug("✅ Success: %s completed.", func_name)
+            result_str = str(result) if result is not None else "Success"
+            
+            if call_id:
+                audit_logger.end_call(call_id, result_str, success=True)
 
-            return str(result) if result is not None else "Success"
+            return result_str
 
         except ToolValidationError as e:
             log.error("❌ Validation Error: %s", e)
-            return f"Ошибка валидации: {e}"
+            error_msg = f"Ошибка валидации: {e}"
+            if call_id:
+                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+            return error_msg
         except ToolPermissionError as e:
             log.warning("🚫 Permission Denied: %s", e)
-            return f"Ошибка доступа: {e}"
+            error_msg = f"Ошибка доступа: {e}"
+            if call_id:
+                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+            return error_msg
         except ToolNotFoundError as e:
             log.error("❌ Tool Not Found: %s", e)
-            return f"Ошибка: {e}"
+            error_msg = f"Ошибка: {e}"
+            if call_id:
+                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+            return error_msg
         except ToolTimeoutError as e:
             log.error("⏱️ Timeout: %s", e)
-            return f"Ошибка таймаута: {e}"
+            error_msg = f"Ошибка таймаута: {e}"
+            if call_id:
+                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+            return error_msg
         except ToolExecutionError as e:
             log.error("💥 Tool Execution Error: %s", e)
-            return f"Ошибка выполнения: {e}"
+            error_msg = f"Ошибка выполнения: {e}"
+            if call_id:
+                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+            return error_msg
         except Exception as e:
             # Неожиданные ошибки
             log.exception("💥 Unexpected Error: %s", e)
-            return f"Неожиданная ошибка: {type(e).__name__}: {e}"
+            error_msg = f"Неожиданная ошибка: {type(e).__name__}: {e}"
+            if call_id:
+                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+            return error_msg
