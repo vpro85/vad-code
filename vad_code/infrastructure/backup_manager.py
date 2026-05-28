@@ -57,9 +57,23 @@ class BackupManager:
             backup_name = f"{target.name}.bak_{id(self)}_{len(self.undo_stack)}"
             backup_path = self.backup_dir / backup_name
             
-            # Копируем файл
+            # Копируем файл, исключая служебные директории
             if target.is_dir():
-                shutil.copytree(target, backup_path)
+                shutil.copytree(
+                    target, 
+                    backup_path, 
+                    ignore=shutil.ignore_patterns(
+                        '.vad_backups', 
+                        '.git', 
+                        '__pycache__', 
+                        'htmlcov', 
+                        '.pytest_cache',
+                        'node_modules',
+                        '.venv',
+                        'venv',
+                        'env'
+                    )
+                )
             else:
                 shutil.copy2(target, backup_path)
             
@@ -103,7 +117,21 @@ class BackupManager:
             
             if target.exists():
                 if target.is_dir():
-                    shutil.copytree(target, redo_backup_path)
+                    shutil.copytree(
+                        target, 
+                        redo_backup_path, 
+                        ignore=shutil.ignore_patterns(
+                            '.vad_backups', 
+                            '.git', 
+                            '__pycache__', 
+                            'htmlcov', 
+                            '.pytest_cache',
+                            'node_modules',
+                            '.venv',
+                            'venv',
+                            'env'
+                        )
+                    )
                 else:
                     shutil.copy2(target, redo_backup_path)
             
