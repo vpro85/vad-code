@@ -60,3 +60,4 @@ lm-studio-data/
 
 # Backup directory for undo/redo
 .vad_backups/
+/agent.log.*
