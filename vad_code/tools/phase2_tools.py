@@ -8,6 +8,7 @@ import re
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 from .permissions import register_tool, ToolRiskLevel
 from .schemas import (

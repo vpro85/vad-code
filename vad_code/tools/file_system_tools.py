@@ -2,6 +2,8 @@
 Базовые инструменты для работы с файловой системой.
 """
 
+from pathlib import Path
+
 from ..infrastructure.file_system import FileSystemService
 from ..infrastructure.cache import SimpleLRUCache
 from .permissions import register_tool, ToolRiskLevel
