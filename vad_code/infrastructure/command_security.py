@@ -133,7 +133,7 @@ class CommandValidator:
 
     def __init__(
         self,
-        allowed_commands: Optional[set] = None,
+        allowed_commands: Optional[set[str]] = None,
         max_timeout: int = 300,  # 5 минут максимум
         max_output_size: int = 1_000_000,  # 1MB
     ):

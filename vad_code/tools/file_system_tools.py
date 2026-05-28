@@ -59,7 +59,7 @@ class FileSystemTools:
         try:
             root = self.fs.safe_path(path)
 
-            def _walk(p, current_depth: int, prefix: str = "") -> list[str]:
+            def _walk(p: Path, current_depth: int, prefix: str = "") -> list[str]:
                 if current_depth == 0:
                     return []
                 lines = []

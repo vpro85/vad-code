@@ -366,8 +366,8 @@ class Phase2Tools:
             output = f"Найдено {len(duplicates)} дублирующихся блоков:\n\n"
             for idx, (block_hash, locations) in enumerate(duplicates.items(), 1):
                 output += f"Дубликат #{idx}:\n"
-                for file_path, line_num in locations:
-                    output += f"  - {file_path}:{line_num}\n"
+                for loc_file, line_num in locations:
+                    output += f"  - {loc_file}:{line_num}\n"
                 output += "\n"
 
             # Ограничение размера
@@ -396,7 +396,7 @@ class Phase2Tools:
             if not target_path.exists():
                 return f"Ошибка: путь '{path}' не существует."
 
-            results = []
+            results: list[dict[str, Any]] = []
 
             def _analyze_file(file_path: Path) -> None:
                 try:
@@ -682,13 +682,13 @@ class Phase2Tools:
                 return "Не найдено файлов для анализа."
 
             output = "Граф зависимостей:\n\n"
-            for file_path, deps in sorted(dependencies.items()):
+            for dep_file, deps in sorted(dependencies.items()):
                 if deps:
-                    output += f"  {file_path}:\n"
+                    output += f"  {dep_file}:\n"
                     for dep in sorted(deps):
                         output += f"    -> {dep}\n"
                 else:
-                    output += f"  {file_path}: (нет импортов)\n"
+                    output += f"  {dep_file}: (нет импортов)\n"
 
             max_size = command_validator.max_output_size
             if len(output) > max_size:
@@ -842,7 +842,7 @@ class Phase2Tools:
             if system == "Windows":
                 import ctypes
 
-                kernel32 = ctypes.windll.kernel32
+                kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
                 handle = kernel32.OpenProcess(1, False, pid)
                 if handle == 0:
                     return f"Ошибка: процесс с PID {pid} не найден."

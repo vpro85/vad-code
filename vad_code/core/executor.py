@@ -118,7 +118,7 @@ class ToolExecutor:
         schema = self.schemas[func_name]
         try:
             validated_model = schema.model_validate(args)
-            return validated_model.model_dump()
+            return validated_model.model_dump()  # type: ignore[no-any-return]
         except (ValueError, TypeError) as e:
             raise ToolValidationError(
                 f"Ошибка валидации аргументов для '{func_name}': {e}"
@@ -171,11 +171,11 @@ class ToolExecutor:
         ]
         for key in path_keys:
             if key in args and isinstance(args[key], str):
-                return args[key]
+                return str(args[key])
         # Если не нашли, возвращаем первый строковый аргумент
         for val in args.values():
             if isinstance(val, str):
-                return val
+                return str(val)
         return None
 
     async def execute(self, call_text: str) -> Optional[str]:

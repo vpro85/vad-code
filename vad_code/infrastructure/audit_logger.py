@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from vad_code.infrastructure.logger import log
 
@@ -19,18 +19,18 @@ class AuditRecord:
 
     timestamp: str
     tool_name: str
-    arguments: dict
+    arguments: dict[str, Any]
     result: str
     success: bool
     duration_ms: float
     error_message: Optional[str] = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Сериализация в словарь."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "AuditRecord":
+    def from_dict(cls, data: dict[str, Any]) -> "AuditRecord":
         """Десериализация из словаря."""
         return cls(**data)
 
@@ -54,7 +54,7 @@ class AuditLogger:
         self.max_records = max_records
         self._active_calls: dict[str, float] = {}  # tool_call_id -> start_time
 
-    def start_call(self, tool_name: str, arguments: dict) -> str:
+    def start_call(self, tool_name: str, arguments: dict[str, Any]) -> str:
         """
         Регистрирует начало вызова инструмента.
 
@@ -162,7 +162,7 @@ class AuditLogger:
 
         return records[-limit:]
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """
         Возвращает статистику по вызовам инструментов.
 
@@ -184,7 +184,7 @@ class AuditLogger:
         avg_duration = sum(r.duration_ms for r in self.records) / total
 
         # Статистика по каждому инструменту
-        tools_stats: dict[str, dict] = {}
+        tools_stats: dict[str, dict[str, Any]] = {}
         for record in self.records:
             if record.tool_name not in tools_stats:
                 tools_stats[record.tool_name] = {

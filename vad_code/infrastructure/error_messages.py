@@ -111,7 +111,7 @@ class ErrorMessages:
         return "\n".join(lines)
 
     @classmethod
-    def _format_generic_error(cls, error_type: str, **kwargs) -> str:
+    def _format_generic_error(cls, error_type: str, **kwargs: object) -> str:
         """Форматирует ошибку без шаблона."""
         message = kwargs.get("message", "Произошла ошибка")
         suggestion = kwargs.get("suggestion", "Проверьте параметры и попробуйте снова.")

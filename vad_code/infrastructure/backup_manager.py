@@ -4,7 +4,7 @@
 
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from vad_code.infrastructure.logger import log
 
@@ -210,7 +210,7 @@ class BackupManager:
             self.redo_stack.append(record)
             return f"❌ Ошибка при повторе: {e}"
 
-    def get_history(self) -> list[dict]:
+    def get_history(self) -> list[dict[str, Any]]:
         """Возвращает историю изменений."""
         return [
             {
