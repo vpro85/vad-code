@@ -28,6 +28,9 @@ from .schemas import (
     ListProcessesSchema,
     KillProcessSchema,
     RunBackgroundTaskSchema,
+    SuggestRefactoringSchema,
+    UpdateReadmeSchema,
+    GenerateChangelogSchema,
 )
 
 
@@ -896,6 +899,238 @@ class Phase2Tools:
 
         except (OSError, ValueError) as e:
             return f"Ошибка при запуске фоновой задачи: {e}"
+
+    # =========================================================================
+    # Анализ и рефакторинг
+    # =========================================================================
+
+    @register_tool(
+        description="Предложения по рефакторингу кода",
+        risk_level=ToolRiskLevel.READ,
+    )
+    def suggest_refactoring(
+        self,
+        path: str,
+        function_name: str = "",
+    ) -> str:
+        """Анализ кода и предложения по рефакторингу."""
+        try:
+            target_path = self.fs.safe_path(path)
+            if not target_path.exists() or not target_path.is_file():
+                return f"Ошибка: файл '{path}' не найден."
+
+            content = target_path.read_text(encoding="utf-8")
+            tree = ast.parse(content)
+
+            suggestions = []
+
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if function_name and node.name != function_name:
+                        continue
+
+                    # Проверка длины функции
+                    func_lines = 0
+                    if hasattr(node, 'end_lineno') and node.end_lineno:
+                        func_lines = node.end_lineno - node.lineno
+
+                    if func_lines > 50:
+                        suggestions.append(
+                            f"⚠️ {node.name}(): функция слишком длинная ({func_lines} строк). "
+                            f"Рассмотрите разбиение на меньшие функции."
+                        )
+
+                    # Проверка количества аргументов
+                    num_args = len(node.args.args)
+                    if num_args > 5:
+                        suggestions.append(
+                            f"⚠️ {node.name}(): слишком много аргументов ({num_args}). "
+                            f"Рассмотрите использование **kwargs или объект-конфигурации."
+                        )
+
+                    # Проверка вложенности
+                    max_depth = self._get_max_nesting(node)
+                    if max_depth > 4:
+                        suggestions.append(
+                            f"⚠️ {node.name}(): глубина вложенности {max_depth}. "
+                            f"Рассмотрите ранние возвраты (guard clauses)."
+                        )
+
+                elif isinstance(node, ast.ClassDef):
+                    # Проверка количества методов
+                    methods = [n for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+                    if len(methods) > 10:
+                        suggestions.append(
+                            f"⚠️ {node.name}: класс содержит {len(methods)} методов. "
+                            f"Рассмотрите разделение на несколько классов."
+                        )
+
+            if not suggestions:
+                return "✅ Значимых проблем не обнаружено. Код выглядит хорошо."
+
+            return "\n".join(suggestions)
+
+        except Exception as e:
+            return f"Ошибка при анализе: {e}"
+
+    def _get_max_nesting(self, node: ast.AST, current_depth: int = 0) -> int:
+        """Вычисление максимальной глубины вложенности."""
+        nesting_nodes = (ast.If, ast.For, ast.While, ast.With, ast.Try)
+        max_depth = current_depth
+
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, nesting_nodes):
+                child_depth = self._get_max_nesting(child, current_depth + 1)
+                max_depth = max(max_depth, child_depth)
+            else:
+                child_depth = self._get_max_nesting(child, current_depth)
+                max_depth = max(max_depth, child_depth)
+
+        return max_depth
+
+    # =========================================================================
+    # Документация
+    # =========================================================================
+
+    @register_tool(
+        description="Обновление README файла",
+        risk_level=ToolRiskLevel.WRITE,
+    )
+    def update_readme(
+        self,
+        path: str = "README.md",
+        section: str = "",
+        content: str = "",
+    ) -> str:
+        """Обновление содержимого README."""
+        try:
+            target_path = self.fs.safe_path(path)
+
+            if section:
+                # Обновление конкретной секции
+                if target_path.exists():
+                    readme_content = target_path.read_text(encoding="utf-8")
+                    section_pattern = f"## {section}"
+                    if section_pattern not in readme_content:
+                        # Добавляем новую секцию
+                        readme_content += f"\n\n## {section}\n{content}\n"
+                    else:
+                        # Заменяем содержимое секции
+                        lines = readme_content.split("\n")
+                        in_section = False
+                        section_start = -1
+                        section_end = -1
+                        section_indent = 0
+
+                        for i, line in enumerate(lines):
+                            if line.startswith("## ") and section in line:
+                                in_section = True
+                                section_start = i
+                                section_indent = len(line) - len(line.lstrip("#"))
+                            elif in_section and line.startswith("## "):
+                                section_end = i
+                                in_section = False
+                                break
+
+                        if section_end == -1:
+                            section_end = len(lines)
+
+                        # Заменяем секцию
+                        new_lines = lines[:section_start + 1] + [content] + lines[section_end:]
+                        readme_content = "\n".join(new_lines)
+
+                    target_path.write_text(readme_content, encoding="utf-8")
+                    return f"Секция '{section}' в {path} обновлена."
+                else:
+                    # Создаем новый README
+                    target_path.write_text(f"# Проект\n\n## {section}\n{content}\n", encoding="utf-8")
+                    return f"Создан новый файл {path} с секцией '{section}'."
+            else:
+                # Полная перезапись
+                target_path.write_text(content, encoding="utf-8")
+                return f"Файл {path} полностью обновлен."
+
+        except Exception as e:
+            return f"Ошибка при обновлении README: {e}"
+
+    @register_tool(
+        description="Генерация changelog на основе git-истории",
+        risk_level=ToolRiskLevel.WRITE,
+    )
+    def generate_changelog(
+        self,
+        path: str = "CHANGELOG.md",
+        since_version: str = "",
+        include_stats: bool = True,
+    ) -> str:
+        """Генерация changelog из git-логов."""
+        try:
+            import subprocess
+
+            # Получаем коммиты
+            if since_version:
+                cmd = f"git log {since_version}..HEAD --pretty=format:'%h|%ad|%s' --date=short"
+            else:
+                cmd = "git log --pretty=format:'%h|%ad|%s' --date=short"
+
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, timeout=30
+            )
+
+            if result.returncode != 0:
+                return "Ошибка: не удалось получить git-логи."
+
+            commits = result.stdout.strip().split("\n")
+            if not commits or commits == [""]:
+                return "Нет изменений для записи."
+
+            # Группировка по типам
+            features = []
+            fixes = []
+            improvements = []
+            other = []
+
+            for commit in commits:
+                parts = commit.split("|", 2)
+                if len(parts) < 3:
+                    continue
+                hash_val, date, message = parts
+
+                msg_lower = message.lower()
+                if msg_lower.startswith("feat"):
+                    features.append(f"- {message} ({hash_val[:7]})")
+                elif msg_lower.startswith("fix"):
+                    fixes.append(f"- {message} ({hash_val[:7]})")
+                elif msg_lower.startswith(("refactor", "improve", "perf", "style", "chore")):
+                    improvements.append(f"- {message} ({hash_val[:7]})")
+                else:
+                    other.append(f"- {message} ({hash_val[:7]})")
+
+            # Формирование changelog
+            changelog = f"# Changelog\n\n"
+            changelog += f"## [{since_version or 'latest'}] - {commits[0].split('|')[1] if '|' in commits[0] else 'N/A'}\n\n"
+
+            if features:
+                changelog += "### ✨ Новые функции\n" + "\n".join(features) + "\n\n"
+            if fixes:
+                changelog += "### 🐛 Исправления\n" + "\n".join(fixes) + "\n\n"
+            if improvements:
+                changelog += "### 🔧 Улучшения\n" + "\n".join(improvements) + "\n\n"
+            if other:
+                changelog += "### 📝 Прочее\n" + "\n".join(other) + "\n\n"
+
+            if include_stats:
+                changelog += f"**Всего коммитов:** {len(commits)}\n"
+                changelog += f"**Фичи:** {len(features)} | **Фиксы:** {len(fixes)} | **Улучшения:** {len(improvements)}\n"
+
+            # Запись в файл
+            target_path = self.fs.safe_path(path)
+            target_path.write_text(changelog, encoding="utf-8")
+
+            return f"Changelog сгенерирован и записан в {path}\n\n{changelog}"
+
+        except Exception as e:
+            return f"Ошибка при генерации changelog: {e}"
 
 
 # Автоматическая регистрация при импорте

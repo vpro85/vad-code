@@ -244,6 +244,26 @@ class RunBackgroundTaskSchema(BaseModel):
     timeout: int = Field(300, description="Таймаут в секундах", ge=10, le=3600)
 
 
+class SuggestRefactoringSchema(BaseModel):
+    """Схема для предложений по рефакторингу."""
+    path: str = Field(..., description="Путь к файлу")
+    function_name: str = Field("", description="Имя функции. Пусто = для всех")
+
+
+class UpdateReadmeSchema(BaseModel):
+    """Схема для обновления README."""
+    path: str = Field("README.md", description="Путь к README файлу")
+    section: str = Field("", description="Секция для обновления. Пусто = весь файл")
+    content: str = Field(..., description="Новое содержимое")
+
+
+class GenerateChangelogSchema(BaseModel):
+    """Схема для генерации changelog."""
+    path: str = Field("CHANGELOG.md", description="Путь к CHANGELOG файлу")
+    since_version: str = Field("", description="Версия, с которой собирать изменения")
+    include_stats: bool = Field(True, description="Включить статистику изменений")
+
+
 # --- Проблемные случаи ---
 
 class ReportBadCaseSchema(BaseModel):

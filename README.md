@@ -194,8 +194,4 @@ docker run -it --env-file .env vad-code
 
 MIT
 
-## 🤝 Вклад
-
-Принимаю pull requests! Для крупных изменений откройте issue для обсуждения.
-
 ---

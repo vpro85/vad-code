@@ -98,12 +98,12 @@
 - [x] **Анализ кода**
   - [x] `analyze_complexity` - анализ сложности функций
   - [x] `find_code_smells` - поиск запахов кода
-  - [ ] `suggest_refactoring` - предложения по рефакторингу
+  - [x] `suggest_refactoring` - предложения по рефакторингу
 
 - [x] **Генерация документации**
   - [x] `generate_docstring` - создание docstrings
-  - [ ] `update_readme` - обновление документации
-  - [ ] `generate_changelog` - создание changelog
+  - [x] `update_readme` - обновление документации
+  - [x] `generate_changelog` - создание changelog
 
 - [x] **Работа с зависимостями**
   - [x] `analyze_dependencies` - анализ графа зависимостей

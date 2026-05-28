@@ -346,3 +346,174 @@ class TestRunBackgroundTask:
             mock_validate.return_value = (False, "Unsafe command")
             result = phase2_tools.run_background_task(command="rm -rf /")
             assert "Ошибка безопасности" in result
+
+
+class TestSuggestRefactoring:
+    """Тесты предложений по рефакторингу."""
+
+    def test_suggest_refactoring_clean_code(self, phase2_tools, tmp_path):
+        """Тест чистого кода без проблем."""
+        test_file = tmp_path / "clean.py"
+        test_file.write_text("def simple():\n    return 1\n")
+
+        result = phase2_tools.suggest_refactoring(path="clean.py")
+        assert "Значимых проблем не обнаружено" in result
+
+    def test_suggest_refactoring_long_function(self, phase2_tools, tmp_path):
+        """Тест обнаружения длинной функции."""
+        test_file = tmp_path / "long.py"
+        lines = ["def long_func():"]
+        for i in range(55):
+            lines.append(f"    x{i} = {i}")
+        lines.append("    return x54")
+        test_file.write_text("\n".join(lines))
+
+        result = phase2_tools.suggest_refactoring(path="long.py")
+        assert "слишком длинная" in result
+
+    def test_suggest_refactoring_many_args(self, phase2_tools, tmp_path):
+        """Тест обнаружения функции с множеством аргументов."""
+        test_file = tmp_path / "args.py"
+        test_file.write_text("def many(a, b, c, d, e, f):\n    pass\n")
+
+        result = phase2_tools.suggest_refactoring(path="args.py")
+        assert "слишком много аргументов" in result
+
+    def test_suggest_refactoring_deep_nesting(self, phase2_tools, tmp_path):
+        """Тест обнаружения глубокой вложенности."""
+        test_file = tmp_path / "nested.py"
+        test_file.write_text("""
+def nested():
+    if True:
+        if True:
+            if True:
+                if True:
+                    if True:
+                        pass
+""")
+
+        result = phase2_tools.suggest_refactoring(path="nested.py")
+        assert "глубина вложенности" in result
+
+    def test_suggest_refactoring_specific_function(self, phase2_tools, tmp_path):
+        """Тест анализа конкретной функции."""
+        test_file = tmp_path / "funcs.py"
+        test_file.write_text("def good():\n    pass\n\ndef bad(a,b,c,d,e,f):\n    pass\n")
+
+        result = phase2_tools.suggest_refactoring(path="funcs.py", function_name="good")
+        assert "Значимых проблем не обнаружено" in result
+
+
+class TestUpdateReadme:
+    """Тесты обновления README."""
+
+    def test_update_readme_new_section(self, phase2_tools, tmp_path):
+        """Тест добавления новой секции."""
+        readme = tmp_path / "README.md"
+        readme.write_text("# Project\n")
+
+        result = phase2_tools.update_readme(
+            path="README.md",
+            section="Installation",
+            content="pip install mypackage",
+        )
+
+        assert "обновлена" in result
+        assert "Installation" in readme.read_text()
+        assert "pip install mypackage" in readme.read_text()
+
+    def test_update_readme_existing_section(self, phase2_tools, tmp_path):
+        """Тест обновления существующей секции."""
+        readme = tmp_path / "README.md"
+        readme.write_text("# Project\n\n## Installation\nold content\n")
+
+        result = phase2_tools.update_readme(
+            path="README.md",
+            section="Installation",
+            content="new content",
+        )
+
+        assert "обновлена" in result
+        content = readme.read_text()
+        assert "new content" in content
+        assert "old content" not in content
+
+    def test_update_readme_create_new(self, phase2_tools, tmp_path):
+        """Тест создания нового README."""
+        result = phase2_tools.update_readme(
+            path="new_readme.md",
+            section="Intro",
+            content="Welcome!",
+        )
+
+        assert "Создан новый файл" in result
+
+    def test_update_readme_full_rewrite(self, phase2_tools, tmp_path):
+        """Тест полной перезаписи."""
+        readme = tmp_path / "README.md"
+        readme.write_text("old")
+
+        result = phase2_tools.update_readme(
+            path="README.md",
+            section="",
+            content="completely new",
+        )
+
+        assert "полностью обновлен" in result
+        assert readme.read_text() == "completely new"
+
+
+class TestGenerateChangelog:
+    """Тесты генерации changelog."""
+
+    def test_generate_changelog(self, phase2_tools, tmp_path):
+        """Тест генерации changelog."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="abc1234|2024-01-15|feat: new feature\ndef5678|2024-01-14|fix: bug fix\nghi9012|2024-01-13|refactor: cleanup\n",
+                stderr="",
+            )
+
+            result = phase2_tools.generate_changelog(path="CHANGELOG.md")
+            assert "Changelog сгенерирован" in result
+            assert "Новые функции" in result
+            assert "Исправления" in result
+            assert "Улучшения" in result
+
+    def test_generate_changelog_no_commits(self, phase2_tools, tmp_path):
+        """Тест когда нет коммитов."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="",
+                stderr="",
+            )
+
+            result = phase2_tools.generate_changelog(path="CHANGELOG.md")
+            assert "Нет изменений" in result
+
+    def test_generate_changelog_with_stats(self, phase2_tools, tmp_path):
+        """Тест включения статистики."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="abc1234|2024-01-15|feat: new\ndef5678|2024-01-14|fix: bug\n",
+                stderr="",
+            )
+
+            result = phase2_tools.generate_changelog(path="CHANGELOG.md", include_stats=True)
+            assert "Всего коммитов" in result
+
+    def test_generate_changelog_since_version(self, phase2_tools, tmp_path):
+        """Тест фильтрации по версии."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="abc1234|2024-01-15|feat: new\n",
+                stderr="",
+            )
+
+            phase2_tools.generate_changelog(path="CHANGELOG.md", since_version="v1.0.0")
+            assert "v1.0.0..HEAD" in str(mock_run.call_args)
+
