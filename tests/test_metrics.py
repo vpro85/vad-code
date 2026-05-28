@@ -7,7 +7,6 @@ from vad_code.infrastructure.metrics import (
     ToolMetrics,
     TokenMetrics,
     SessionMetrics,
-    session_metrics,
     reset_metrics,
     get_metrics,
     record_tool_call,

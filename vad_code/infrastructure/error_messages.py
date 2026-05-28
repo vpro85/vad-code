@@ -21,12 +21,18 @@ class ErrorMessages:
         },
         "permission_denied": {
             "message": "Доступ запрещен",
-            "suggestion": "Инструмент '{tool_name}' требует уровень риска '{risk_level}', но разрешены только: {allowed_levels}",
+            "suggestion": (
+                "Инструмент '{tool_name}' требует уровень риска "
+                "'{risk_level}', но разрешены только: {allowed_levels}"
+            ),
             "example": "Измените ALLOWED_TOOL_RISK_LEVELS в .env или используйте --permissions",
         },
         "timeout_error": {
             "message": "Превышено время выполнения",
-            "suggestion": "Инструмент '{tool_name}' выполнялся дольше {timeout}с. Попробуйте уменьшить объем данных или увеличить таймаут.",
+            "suggestion": (
+                "Инструмент '{tool_name}' выполнялся дольше {timeout}с. "
+                "Попробуйте уменьшить объем данных или увеличить таймаут."
+            ),
             "example": "Увеличьте TIMEOUT в .env (сейчас: {timeout}с)",
         },
         "file_not_found": {

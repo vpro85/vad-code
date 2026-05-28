@@ -1133,7 +1133,12 @@ class Phase2Tools:
 
             # Формирование changelog
             changelog = "# Changelog\n\n"
-            changelog += f"## [{since_version or 'latest'}] - {commits[0].split('|')[1] if '|' in commits[0] else 'N/A'}\n\n"
+            date_str = (
+                commits[0].split("|")[1]
+                if "|" in commits[0]
+                else "N/A"
+            )
+            changelog += f"## [{since_version or 'latest'}] - {date_str}\n\n"
 
             if features:
                 changelog += "### ✨ Новые функции\n" + "\n".join(features) + "\n\n"
@@ -1146,7 +1151,11 @@ class Phase2Tools:
 
             if include_stats:
                 changelog += f"**Всего коммитов:** {len(commits)}\n"
-                changelog += f"**Фичи:** {len(features)} | **Фиксы:** {len(fixes)} | **Улучшения:** {len(improvements)}\n"
+                changelog += (
+                    f"**Фичи:** {len(features)} | "
+                    f"**Фиксы:** {len(fixes)} | "
+                    f"**Улучшения:** {len(improvements)}\n"
+                )
 
             # Запись в файл
             target_path = self.fs.safe_path(path)

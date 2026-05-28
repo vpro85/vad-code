@@ -478,7 +478,11 @@ class TestGenerateChangelog:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
                 returncode=0,
-                stdout="abc1234|2024-01-15|feat: new feature\ndef5678|2024-01-14|fix: bug fix\nghi9012|2024-01-13|refactor: cleanup\n",
+                stdout=(
+                    "abc1234|2024-01-15|feat: new feature\n"
+                    "def5678|2024-01-14|fix: bug fix\n"
+                    "ghi9012|2024-01-13|refactor: cleanup\n"
+                ),
                 stderr="",
             )
 
