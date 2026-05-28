@@ -1,6 +1,7 @@
 """
 Инструменты для получения информации о файлах и проекте.
 """
+
 import datetime
 
 from ..infrastructure.file_system import FileSystemService
@@ -50,12 +51,12 @@ class InfoTools:
         """Возвращает информацию о файле."""
         try:
             info = self.fs.get_file_info(path)
-            modified = datetime.datetime.fromtimestamp(
-                info["modified"]
-            ).strftime("%Y-%m-%d %H:%M:%S")
-            accessed = datetime.datetime.fromtimestamp(
-                info["accessed"]
-            ).strftime("%Y-%m-%d %H:%M:%S")
+            modified = datetime.datetime.fromtimestamp(info["modified"]).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+            accessed = datetime.datetime.fromtimestamp(info["accessed"]).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
             return (
                 f"Имя: {info['name']}\n"
                 f"Путь: {info['path']}\n"
@@ -115,10 +116,7 @@ class InfoTools:
             root = self.fs.safe_path(path)
             files = list(root.rglob(file_glob))
             excluded = {".git", "__pycache__", ".venv", "node_modules"}
-            files = [
-                f for f in files
-                if not any(part in excluded for part in f.parts)
-            ]
+            files = [f for f in files if not any(part in excluded for part in f.parts)]
 
             total_lines = 0
             total_size = 0
@@ -126,7 +124,7 @@ class InfoTools:
                 try:
                     total_lines += len(f.read_text(encoding="utf-8").splitlines())
                     total_size += f.stat().st_size
-                except (OSError, UnicodeDecodeError):
+                except OSError, UnicodeDecodeError:
                     continue
 
             return (

@@ -2,6 +2,7 @@
 Модуль безопасности для выполнения команд.
 Проверка на опасные паттерны, белый/черный список команд.
 """
+
 import re
 from typing import Optional
 
@@ -10,32 +11,75 @@ from vad_code.infrastructure.logger import log
 # Белый список разрешенных команд
 ALLOWED_COMMANDS = {
     # Тестирование
-    "pytest", "unittest", "coverage",
+    "pytest",
+    "unittest",
+    "coverage",
     # Линтеры и статический анализ
-    "pylint", "flake8", "mypy", "ruff", "black", "isort", "autopep8",
+    "pylint",
+    "flake8",
+    "mypy",
+    "ruff",
+    "black",
+    "isort",
+    "autopep8",
     # Git
     "git",
     # Python
-    "python", "python3", "pip", "pip3",
+    "python",
+    "python3",
+    "pip",
+    "pip3",
     # Утилиты
-    "ls", "cat", "head", "tail", "grep", "find", "wc", "du", "df",
-    "tree", "file", "stat",
+    "ls",
+    "cat",
+    "head",
+    "tail",
+    "grep",
+    "find",
+    "wc",
+    "du",
+    "df",
+    "tree",
+    "file",
+    "stat",
     # Сетевые утилиты (только чтение)
-    "curl", "wget",
+    "curl",
+    "wget",
     # Компиляция/сборка
-    "make", "cmake", "npm", "yarn",
+    "make",
+    "cmake",
+    "npm",
+    "yarn",
     # Docker (только чтение)
-    "docker", "docker-compose",
+    "docker",
+    "docker-compose",
 }
 
 # Черный список запрещенных команд (всегда запрещены)
 BLACKLISTED_COMMANDS = {
-    "rm", "rmdir", "del", "erase",
-    "sudo", "su", "chmod", "chown",
-    "mkfs", "dd", "fdisk", "parted",
-    "shutdown", "reboot", "poweroff",
-    "apt", "apt-get", "yum", "dnf", "pacman", "brew",  # системные пакеты
-    "curl", "wget",  # могут скачивать вредоносное ПО
+    "rm",
+    "rmdir",
+    "del",
+    "erase",
+    "sudo",
+    "su",
+    "chmod",
+    "chown",
+    "mkfs",
+    "dd",
+    "fdisk",
+    "parted",
+    "shutdown",
+    "reboot",
+    "poweroff",
+    "apt",
+    "apt-get",
+    "yum",
+    "dnf",
+    "pacman",
+    "brew",  # системные пакеты
+    "curl",
+    "wget",  # могут скачивать вредоносное ПО
 }
 
 # Опасные паттерны в командах
@@ -61,7 +105,10 @@ DANGEROUS_PATTERNS = [
     (r"\bdel\s+/q", "Быстрое удаление в Windows"),
     (r"\berase\b", "Стирание данных"),
     (r"/\s+-rf\b", "Аргумент -rf"),
-    (r"\bapt\s+(get\s+)?(install|remove|purge)", "Установка/удаление системных пакетов"),
+    (
+        r"\bapt\s+(get\s+)?(install|remove|purge)",
+        "Установка/удаление системных пакетов",
+    ),
     (r"\byum\s+(install|remove)", "Установка/удаление через yum"),
     (r"\b(dnf|pacman|brew)\s+(install|remove|delete)", "Установка/удаление пакетов"),
 ]
@@ -69,13 +116,14 @@ DANGEROUS_PATTERNS = [
 
 class CommandSecurityError(Exception):
     """Ошибка безопасности при выполнении команды."""
+
     pass
 
 
 class CommandValidator:
     """
     Валидатор команд для проверки безопасности.
-    
+
     Проверяет:
     - Белый список разрешенных команд
     - Черный список запрещенных команд
@@ -84,10 +132,10 @@ class CommandValidator:
     """
 
     def __init__(
-            self,
-            allowed_commands: Optional[set] = None,
-            max_timeout: int = 300,  # 5 минут максимум
-            max_output_size: int = 1_000_000  # 1MB
+        self,
+        allowed_commands: Optional[set] = None,
+        max_timeout: int = 300,  # 5 минут максимум
+        max_output_size: int = 1_000_000,  # 1MB
     ):
         self.allowed_commands = allowed_commands or ALLOWED_COMMANDS
         self.max_timeout = max_timeout
@@ -96,10 +144,10 @@ class CommandValidator:
     def validate(self, command: str) -> tuple[bool, str]:
         """
         Проверяет безопасность команды.
-        
+
         Args:
             command: Команда для проверки.
-            
+
         Returns:
             Кортеж (безопасно, сообщение).
         """
@@ -133,31 +181,34 @@ class CommandValidator:
     def _check_dangerous_patterns(self, command: str) -> Optional[str]:
         """
         Проверяет команду на наличие опасных паттернов.
-        
+
         Args:
             command: Команда для проверки.
-            
+
         Returns:
             Описание опасного паттерна или None.
         """
         for pattern, description in DANGEROUS_PATTERNS:
             if re.search(pattern, command, re.IGNORECASE):
-                log.warning("⚠️ Dangerous pattern detected: %s in '%s'", description, command)
+                log.warning(
+                    "⚠️ Dangerous pattern detected: %s in '%s'", description, command
+                )
                 return description
         return None
 
     def _extract_base_command(self, command: str) -> Optional[str]:
         """
         Извлекает базовую команду из строки.
-        
+
         Args:
             command: Строка команды.
-            
+
         Returns:
             Имя базовой команды или None.
         """
         try:
             import shlex
+
             args = shlex.split(command)
             if args:
                 # Убираем путь, оставляем только имя команды
@@ -169,10 +220,10 @@ class CommandValidator:
     def validate_timeout(self, timeout: int) -> tuple[bool, str]:
         """
         Проверяет время выполнения команды.
-        
+
         Args:
             timeout: Время в секундах.
-            
+
         Returns:
             Кортеж (допустимо, сообщение).
         """

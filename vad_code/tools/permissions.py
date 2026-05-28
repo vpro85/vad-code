@@ -1,6 +1,7 @@
 """
 Модуль управления разрешениями для инструментов.
 """
+
 from enum import Enum
 from typing import Callable, Any, Optional, Type
 from pydantic import BaseModel
@@ -8,24 +9,25 @@ from pydantic import BaseModel
 
 class ToolRiskLevel(Enum):
     """Уровни риска инструментов."""
-    READ = "read"          # Только чтение (list_files, read_file, git_status)
-    WRITE = "write"        # Изменение файлов (write_file, create_dir, git_commit)
-    DANGEROUS = "dangerous" # Опасные операции (delete_file, run_command)
+
+    READ = "read"  # Только чтение (list_files, read_file, git_status)
+    WRITE = "write"  # Изменение файлов (write_file, create_dir, git_commit)
+    DANGEROUS = "dangerous"  # Опасные операции (delete_file, run_command)
 
 
 class ToolPermission:
     """Класс для управления разрешениями."""
-    
+
     def __init__(self, allowed_levels: Optional[list[ToolRiskLevel]] = None):
         """
         Инициализация разрешений.
-        
+
         Args:
-            allowed_levels: Список разрешенных уровней риска. 
+            allowed_levels: Список разрешенных уровней риска.
                            Если None, разрешены все уровни.
         """
         self.allowed_levels = allowed_levels
-    
+
     def is_allowed(self, risk_level: ToolRiskLevel) -> bool:
         """Проверяет, разрешен ли данный уровень риска."""
         if self.allowed_levels is None:
@@ -44,7 +46,7 @@ def register_tool(
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Декоратор для автоматической регистрации методов как инструментов AI.
-    
+
     Args:
         description: Описание инструмента для LLM.
         schema: Pydantic-схема для валидации аргументов.

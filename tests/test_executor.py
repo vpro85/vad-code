@@ -1,4 +1,5 @@
 """Тесты для ToolExecutor — покрытие основных путей выполнения."""
+
 import json5
 import pytest
 
@@ -91,6 +92,7 @@ async def test_execute_tool_raises_type_error(executor):
 async def test_execute_with_schema_validation_success(executor):
     """Тест успешной валидации через Pydantic-схему."""
     from pydantic import BaseModel, Field
+
     class MySchema(BaseModel):
         name: str
         age: int = Field(ge=0)
@@ -99,7 +101,9 @@ async def test_execute_with_schema_validation_success(executor):
         return f"{name} is {age} years old"
 
     executor.register_tool("my_tool", my_tool, schema=MySchema)
-    call_text = json5.dumps({"tool": "my_tool", "arguments": {"name": "Alice", "age": 30}})
+    call_text = json5.dumps(
+        {"tool": "my_tool", "arguments": {"name": "Alice", "age": 30}}
+    )
     result = await executor.execute(call_text)
     assert result == "Alice is 30 years old"
 
@@ -108,6 +112,7 @@ async def test_execute_with_schema_validation_success(executor):
 async def test_execute_with_schema_validation_failure(executor):
     """Тест ошибки валидации через Pydantic-схему."""
     from pydantic import BaseModel, Field
+
     class MySchema(BaseModel):
         name: str
         age: int = Field(ge=0)
@@ -116,7 +121,9 @@ async def test_execute_with_schema_validation_failure(executor):
         return f"{name} is {age} years old"
 
     executor.register_tool("my_tool", my_tool, schema=MySchema)
-    call_text = json5.dumps({"tool": "my_tool", "arguments": {"name": "Alice", "age": -5}})
+    call_text = json5.dumps(
+        {"tool": "my_tool", "arguments": {"name": "Alice", "age": -5}}
+    )
     result = await executor.execute(call_text)
     assert "Ошибка валидации аргументов" in result
 

@@ -1,4 +1,5 @@
 """Тесты для системы разрешений инструментов."""
+
 import pytest
 import json5
 from unittest.mock import patch
@@ -56,12 +57,12 @@ class TestExecutorPermissions:
     @pytest.mark.anyio
     async def test_execute_tool_allowed(self, executor):
         """Инструмент с READ разрешен по умолчанию."""
+
         def read_tool():
             return "read data"
 
         executor.register_tool(
-            "read_tool", read_tool,
-            metadata={"risk_level": ToolRiskLevel.READ}
+            "read_tool", read_tool, metadata={"risk_level": ToolRiskLevel.READ}
         )
         call_text = json5.dumps({"tool": "read_tool", "arguments": {}})
         result = await executor.execute(call_text)
@@ -70,21 +71,25 @@ class TestExecutorPermissions:
     @pytest.mark.anyio
     async def test_execute_tool_denied(self, executor):
         """Инструмент с DANGEROUS запрещен, если не разрешен."""
+
         def dangerous_tool():
             return "dangerous action"
 
         executor.register_tool(
-            "dangerous_tool", dangerous_tool,
-            metadata={"risk_level": ToolRiskLevel.DANGEROUS}
+            "dangerous_tool",
+            dangerous_tool,
+            metadata={"risk_level": ToolRiskLevel.DANGEROUS},
         )
 
         with patch.object(
-            executor, 'metadata',
-            {"dangerous_tool": {"risk_level": ToolRiskLevel.DANGEROUS}}
+            executor,
+            "metadata",
+            {"dangerous_tool": {"risk_level": ToolRiskLevel.DANGEROUS}},
         ):
             # Глобальный permission_manager по умолчанию разрешает всё
             # Нужно явно ограничить
             from vad_code.tools.permissions import permission_manager
+
             original = permission_manager.allowed_levels
             permission_manager.allowed_levels = [ToolRiskLevel.READ]
             try:
@@ -99,6 +104,7 @@ class TestExecutorPermissions:
     @pytest.mark.anyio
     async def test_execute_tool_no_metadata_defaults_to_read(self, executor):
         """Инструмент без метаданных считается READ."""
+
         def simple_tool():
             return "simple"
 
@@ -110,15 +116,16 @@ class TestExecutorPermissions:
     @pytest.mark.anyio
     async def test_execute_tool_write_allowed(self, executor):
         """Инструмент с WRITE разрешен, если WRITE в списке."""
+
         def write_tool():
             return "written"
 
         executor.register_tool(
-            "write_tool", write_tool,
-            metadata={"risk_level": ToolRiskLevel.WRITE}
+            "write_tool", write_tool, metadata={"risk_level": ToolRiskLevel.WRITE}
         )
 
         from vad_code.tools.permissions import permission_manager
+
         original = permission_manager.allowed_levels
         permission_manager.allowed_levels = [ToolRiskLevel.READ, ToolRiskLevel.WRITE]
         try:
@@ -131,15 +138,16 @@ class TestExecutorPermissions:
     @pytest.mark.anyio
     async def test_execute_tool_write_denied(self, executor):
         """Инструмент с WRITE запрещен, если только READ разрешен."""
+
         def write_tool():
             return "written"
 
         executor.register_tool(
-            "write_tool", write_tool,
-            metadata={"risk_level": ToolRiskLevel.WRITE}
+            "write_tool", write_tool, metadata={"risk_level": ToolRiskLevel.WRITE}
         )
 
         from vad_code.tools.permissions import permission_manager
+
         original = permission_manager.allowed_levels
         permission_manager.allowed_levels = [ToolRiskLevel.READ]
         try:

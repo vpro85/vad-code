@@ -1,4 +1,5 @@
 """Модуль для сбора и анализа проблемных случаев распознавания команд."""
+
 import json
 import os
 from dataclasses import dataclass, field, asdict
@@ -14,6 +15,7 @@ BAD_CASES_FILE = os.path.join(settings.project_root, "workspace", "bad_cases.jso
 @dataclass
 class BadCase:
     """Проблемный случай распознавания команды."""
+
     id: str
     timestamp: str
     user_input: str
@@ -56,7 +58,12 @@ class BadCaseManager:
         os.makedirs(os.path.dirname(BAD_CASES_FILE), exist_ok=True)
         try:
             with open(BAD_CASES_FILE, "w", encoding="utf-8") as f:
-                json.dump([case.to_dict() for case in self.cases], f, ensure_ascii=False, indent=2)
+                json.dump(
+                    [case.to_dict() for case in self.cases],
+                    f,
+                    ensure_ascii=False,
+                    indent=2,
+                )
             log.debug(f"Сохранено {len(self.cases)} проблемных случаев")
         except OSError as e:
             log.error(f"Ошибка сохранения bad_cases.json: {e}")
@@ -74,7 +81,9 @@ class BadCaseManager:
 
         :return: ID созданного случая
         """
-        case_id = f"case_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{len(self.cases) + 1}"
+        case_id = (
+            f"case_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{len(self.cases) + 1}"
+        )
         case = BadCase(
             id=case_id,
             timestamp=datetime.now().isoformat(),

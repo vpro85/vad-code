@@ -1,4 +1,5 @@
 """Точка входа"""
+
 import argparse
 import asyncio
 from pathlib import Path
@@ -126,10 +127,14 @@ async def run(args: argparse.Namespace) -> None:
     for name, info in TOOL_REGISTRY.items():
         if hasattr(file_tools, name):
             method = getattr(file_tools, name)
-            executor.register_tool(name, method, schema=info.get("schema"), metadata=info)
+            executor.register_tool(
+                name, method, schema=info.get("schema"), metadata=info
+            )
         elif hasattr(git_tools, name):
             method = getattr(git_tools, name)
-            executor.register_tool(name, method, schema=info.get("schema"), metadata=info)
+            executor.register_tool(
+                name, method, schema=info.get("schema"), metadata=info
+            )
 
     agent = Agent(llm_client=llm_provider, executor=executor, tokenizer=tokenizer)
 

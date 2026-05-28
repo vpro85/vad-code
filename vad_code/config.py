@@ -2,6 +2,7 @@
 Конфигурация приложения.
 Поддерживает переопределение через переменные окружения (Docker, .env).
 """
+
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict

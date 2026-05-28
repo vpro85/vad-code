@@ -1,6 +1,7 @@
 """
 Модуль инструментов для работы с Git.
 """
+
 import subprocess
 from typing import Any, Optional
 
@@ -9,8 +10,8 @@ from pydantic import BaseModel, Field
 from .permissions import register_tool, ToolRiskLevel
 from ..infrastructure.file_system import FileSystemService
 
-
 # --- Схемы валидации аргументов ---
+
 
 class GitStatusSchema(BaseModel):
     """Схема для git status."""
@@ -18,6 +19,7 @@ class GitStatusSchema(BaseModel):
 
 class GitDiffSchema(BaseModel):
     """Схема для git diff."""
+
     path: Optional[str] = Field(
         None,
         description="Путь к конкретному файлу для просмотра разницы. "
@@ -27,6 +29,7 @@ class GitDiffSchema(BaseModel):
 
 class GitDiffStagedSchema(BaseModel):
     """Схема для git diff --staged."""
+
     path: Optional[str] = Field(
         None,
         description="Путь к конкретному файлу. "
@@ -36,51 +39,65 @@ class GitDiffStagedSchema(BaseModel):
 
 class GitAddSchema(BaseModel):
     """Схема для git add."""
+
     path: str = Field(..., description="Путь к файлу или '.' для всех файлов")
 
 
 class GitCommitSchema(BaseModel):
     """Схема для git commit."""
+
     message: str = Field(..., description="Сообщение коммита")
 
 
 class GitLogSchema(BaseModel):
     """Схема для git log."""
+
     limit: int = Field(10, description="Количество последних коммитов для отображения")
 
 
 class GitBranchSchema(BaseModel):
     """Схема для git branch."""
-    name: Optional[str] = Field(None, description="Имя ветки. Если None, показывает список веток.")
+
+    name: Optional[str] = Field(
+        None, description="Имя ветки. Если None, показывает список веток."
+    )
 
 
 class GitCheckoutSchema(BaseModel):
     """Схема для git checkout."""
+
     target: str = Field(..., description="Ветка или путь к файлу для восстановления")
 
 
 class GitShowSchema(BaseModel):
     """Схема для git show."""
+
     commit_hash: str = Field(..., description="Хэш коммита для просмотра")
 
 
 class GitStashSchema(BaseModel):
     """Схема для git stash."""
+
     action: str = Field(..., description="Действие: 'push', 'pop', 'list' или 'apply'")
 
 
 class GitMergeSchema(BaseModel):
     """Схема для git merge."""
+
     branch: str = Field(..., description="Имя ветки для слияния")
 
 
 class GitBlameSchema(BaseModel):
     """Схема для git blame."""
-    path: str = Field(..., description="Путь к файлу для просмотра истории изменений по строкам")
+
+    path: str = Field(
+        ..., description="Путь к файлу для просмотра истории изменений по строкам"
+    )
 
 
 class GitLogFileSchema(BaseModel):
     """Схема для git log конкретного файла."""
+
     path: str = Field(..., description="Путь к файлу")
     limit: int = Field(10, description="Количество последних коммитов для отображения")
 
@@ -91,6 +108,7 @@ class GitCurrentBranchSchema(BaseModel):
 
 class GitSearchCommitsSchema(BaseModel):
     """Схема для поиска коммитов по сообщению."""
+
     query: str = Field(..., description="Текст для поиска в сообщениях коммитов")
     limit: int = Field(10, description="Количество результатов для отображения")
 

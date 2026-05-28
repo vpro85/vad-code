@@ -1,4 +1,5 @@
 """Тесты для инструментов Фазы 2."""
+
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -10,6 +11,7 @@ from vad_code.tools.phase2_tools import Phase2Tools
 def phase2_tools(tmp_path):
     """Фикстура для Phase2Tools с временной директорией."""
     from vad_code.infrastructure.file_system import FileSystemService
+
     fs = FileSystemService()
     fs.root = tmp_path
     tools = Phase2Tools()
@@ -105,7 +107,9 @@ class TestRunLinter:
                 stdout="OK",
                 stderr="",
             )
-            phase2_tools.run_linter(tool="flake8", path=".", args="--max-line-length=120")
+            phase2_tools.run_linter(
+                tool="flake8", path=".", args="--max-line-length=120"
+            )
             assert "--max-line-length=120" in str(mock_run.call_args)
 
 
@@ -332,14 +336,18 @@ class TestRunBackgroundTask:
 
     def test_run_background_task(self, phase2_tools):
         """Тест запуска фоновой задачи."""
-        with patch("vad_code.infrastructure.command_security.command_validator.validate") as mock_validate:
+        with patch(
+            "vad_code.infrastructure.command_security.command_validator.validate"
+        ) as mock_validate:
             mock_validate.return_value = (True, "")
             result = phase2_tools.run_background_task(command="echo hello")
             assert "Фоновая задача запущена" in result
 
     def test_run_background_task_unsafe(self, phase2_tools):
         """Тест блокировки опасной команды."""
-        with patch("vad_code.infrastructure.command_security.command_validator.validate") as mock_validate:
+        with patch(
+            "vad_code.infrastructure.command_security.command_validator.validate"
+        ) as mock_validate:
             mock_validate.return_value = (False, "Unsafe command")
             result = phase2_tools.run_background_task(command="rm -rf /")
             assert "Ошибка безопасности" in result
@@ -395,7 +403,9 @@ def nested():
     def test_suggest_refactoring_specific_function(self, phase2_tools, tmp_path):
         """Тест анализа конкретной функции."""
         test_file = tmp_path / "funcs.py"
-        test_file.write_text("def good():\n    pass\n\ndef bad(a,b,c,d,e,f):\n    pass\n")
+        test_file.write_text(
+            "def good():\n    pass\n\ndef bad(a,b,c,d,e,f):\n    pass\n"
+        )
 
         result = phase2_tools.suggest_refactoring(path="funcs.py", function_name="good")
         assert "Значимых проблем не обнаружено" in result
@@ -499,7 +509,9 @@ class TestGenerateChangelog:
                 stderr="",
             )
 
-            result = phase2_tools.generate_changelog(path="CHANGELOG.md", include_stats=True)
+            result = phase2_tools.generate_changelog(
+                path="CHANGELOG.md", include_stats=True
+            )
             assert "Всего коммитов" in result
 
     def test_generate_changelog_since_version(self, phase2_tools, tmp_path):

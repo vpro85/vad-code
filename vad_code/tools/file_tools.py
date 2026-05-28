@@ -4,6 +4,7 @@
 Этот модуль служит точкой входа для всех инструментов.
 Логика разбита на отдельные классы для лучшей поддерживаемости.
 """
+
 from vad_code.tools.file_system_tools import FileSystemTools
 from vad_code.tools.search_tools import SearchTools
 from vad_code.tools.info_tools import InfoTools
@@ -14,7 +15,7 @@ from vad_code.tools.bad_case_tools import BadCaseTools
 class FileTools:
     """
     Фасад для всех инструментов файловой системы.
-    
+
     Агрегирует функциональность из отдельных модулей.
     """
 
@@ -59,7 +60,9 @@ class FileTools:
         return self._fs_tools.copy_file(src, dst)
 
     # SearchTools
-    def search_in_files(self, query: str, path: str = ".", file_glob: str = "*.py") -> str:
+    def search_in_files(
+        self, query: str, path: str = ".", file_glob: str = "*.py"
+    ) -> str:
         return self._search_tools.search_in_files(query, path, file_glob)
 
     def find_files(self, pattern: str, directory: str = ".") -> str:
@@ -91,13 +94,19 @@ class FileTools:
     def run_command(self, command: str) -> str:
         return self._command_tools.run_command(command)
 
-    def run_tests(self, path: str = ".", verbose: bool = True, timeout: int = 120) -> str:
+    def run_tests(
+        self, path: str = ".", verbose: bool = True, timeout: int = 120
+    ) -> str:
         return self._command_tools.run_tests(path, verbose, timeout)
 
-    def format_code(self, path: str = ".", tool: str = "black", check_only: bool = False) -> str:
+    def format_code(
+        self, path: str = ".", tool: str = "black", check_only: bool = False
+    ) -> str:
         return self._command_tools.format_code(path, tool, check_only)
 
-    def install_package(self, package: str, upgrade: bool = False, user_install: bool = False) -> str:
+    def install_package(
+        self, package: str, upgrade: bool = False, user_install: bool = False
+    ) -> str:
         return self._command_tools.install_package(package, upgrade, user_install)
 
     # BadCaseTools

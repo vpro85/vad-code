@@ -1,4 +1,5 @@
 """Модуль агента — управляет историей, системным промптом и циклом вызовов инструментов"""
+
 import re
 
 import json5
@@ -62,10 +63,13 @@ class Agent:
 
         # Определяем доступные уровни риска
         from vad_code.tools.permissions import permission_manager
+
         if permission_manager.allowed_levels is None:
             risk_info = "Все уровни разрешены (read, write, dangerous)"
         else:
-            risk_info = ", ".join(level.value for level in permission_manager.allowed_levels)
+            risk_info = ", ".join(
+                level.value for level in permission_manager.allowed_levels
+            )
 
         return (
             "Ты - AI-инженер, имеющий доступ к файловой системе в директории: "
@@ -135,11 +139,11 @@ class Agent:
             f"  Всего вызовов: {stats['total_calls']}",
             f"  Успешных: {stats['successful_calls']}",
             f"  Ошибок: {stats['failed_calls']}",
-            f"  Среднее время: {stats['avg_duration_ms']}ms"
+            f"  Среднее время: {stats['avg_duration_ms']}ms",
         ]
-        if stats['tools_used']:
+        if stats["tools_used"]:
             lines.append("\n  По инструментам:")
-            for tool, tool_stats in stats['tools_used'].items():
+            for tool, tool_stats in stats["tools_used"].items():
                 lines.append(
                     f"    - {tool}: {tool_stats['count']} вызовов, "
                     f"{tool_stats['avg_duration_ms']}ms среднее"
@@ -171,10 +175,10 @@ class Agent:
                     candidates.append(content)
         # 3. Пытаемся найти JSON-объект в тексте
         if not candidates:
-            start = ai_response.find('{')
-            end = ai_response.rfind('}')
+            start = ai_response.find("{")
+            end = ai_response.rfind("}")
             if start != -1 and end != -1 and start < end:
-                candidate = ai_response[start:end + 1]
+                candidate = ai_response[start : end + 1]
                 if Agent._try_parse_json(candidate):
                     candidates.append(candidate)
         return candidates[-1] if candidates else None
@@ -191,27 +195,27 @@ class Agent:
             if escape_next:
                 escape_next = False
                 continue
-            if char == '\\':
+            if char == "\\":
                 escape_next = True
                 continue
             if char == '"' and not escape_next:
                 in_string = not in_string
                 continue
             if not in_string:
-                if char == '{':
+                if char == "{":
                     brace_count += 1
-                elif char == '}':
+                elif char == "}":
                     brace_count -= 1
-                elif char == '[':
+                elif char == "[":
                     bracket_count += 1
-                elif char == ']':
+                elif char == "]":
                     bracket_count -= 1
         # Добавляем недостающие закрывающие скобки
         result = text
         if brace_count > 0:
-            result += '}' * brace_count
+            result += "}" * brace_count
         if bracket_count > 0:
-            result += ']' * bracket_count
+            result += "]" * bracket_count
         return result
 
     @staticmethod
@@ -225,7 +229,7 @@ class Agent:
             # 1. Неэкранированные переносы строк внутри строк
             # 2. Незакрытые фигурные/квадратные скобки
             try:
-                fixed_text = re.sub(r'(?<!\\)\n', '\\n', text)
+                fixed_text = re.sub(r"(?<!\\)\n", "\\n", text)
                 fixed_text = Agent._balance_braces(fixed_text)
                 data = json5.loads(fixed_text)
                 return isinstance(data, dict) and "tool" in data
@@ -309,7 +313,12 @@ class Agent:
                     return
 
                 tool_name = self._get_tool_name(call_json)
-                log.info("🤖 AI вызывает [%s]... (%d/%d)", tool_name, i + 1, settings.max_iterations)
+                log.info(
+                    "🤖 AI вызывает [%s]... (%d/%d)",
+                    tool_name,
+                    i + 1,
+                    settings.max_iterations,
+                )
                 log.info(
                     "📝 Результат: %s%s",
                     observation[:120],

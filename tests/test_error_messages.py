@@ -15,7 +15,7 @@ def test_format_tool_not_found():
     msg = format_error(
         "tool_not_found",
         tool_name="unknown_tool",
-        available_tools="read_file, write_file"
+        available_tools="read_file, write_file",
     )
     assert "❌" in msg
     assert "unknown_tool" in msg
@@ -37,7 +37,7 @@ def test_format_permission_denied():
         "permission_denied",
         tool_name="delete_file",
         risk_level="dangerous",
-        allowed_levels=["read", "write"]
+        allowed_levels=["read", "write"],
     )
     assert "❌" in msg
     assert "Доступ запрещен" in msg
@@ -110,7 +110,7 @@ def test_format_unexpected_error():
     msg = format_error(
         "unexpected_error",
         error_type_name="RuntimeError",
-        error_message="Что-то пошло не так"
+        error_message="Что-то пошло не так",
     )
     assert "❌" in msg
     assert "Неожиданная ошибка" in msg
@@ -120,7 +120,9 @@ def test_format_unexpected_error():
 
 def test_format_unknown_error_type():
     """Проверяет форматирование неизвестного типа ошибки."""
-    msg = format_error("unknown_error", message="Тестовая ошибка", suggestion="Попробуйте снова")
+    msg = format_error(
+        "unknown_error", message="Тестовая ошибка", suggestion="Попробуйте снова"
+    )
     assert "❌" in msg
     assert "Тестовая ошибка" in msg
     assert "💡" in msg
@@ -155,7 +157,7 @@ def test_get_permission_info_message():
     msg = get_permission_info_message(
         tool_name="delete_file",
         risk_level="dangerous",
-        allowed_levels=["read", "write"]
+        allowed_levels=["read", "write"],
     )
     assert "🔒" in msg
     assert "delete_file" in msg
@@ -167,9 +169,7 @@ def test_get_permission_info_message():
 def test_get_permission_info_message_all_allowed():
     """Проверяет информацию о разрешениях когда все разрешены."""
     msg = get_permission_info_message(
-        tool_name="read_file",
-        risk_level="read",
-        allowed_levels=[]
+        tool_name="read_file", risk_level="read", allowed_levels=[]
     )
     assert "🔒" in msg
     assert "все" in msg
@@ -178,8 +178,7 @@ def test_get_permission_info_message_all_allowed():
 def test_get_command_security_message():
     """Проверяет генерацию сообщения о безопасности команды."""
     msg = get_command_security_message(
-        command="rm -rf /",
-        reason="Опасный паттерн: rm -rf"
+        command="rm -rf /", reason="Опасный паттерн: rm -rf"
     )
     assert "🚫" in msg
     assert "rm -rf /" in msg

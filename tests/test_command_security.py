@@ -1,4 +1,5 @@
 """Тесты для модуля безопасности команд."""
+
 import pytest
 
 from vad_code.infrastructure.command_security import (

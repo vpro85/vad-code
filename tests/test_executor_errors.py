@@ -40,6 +40,8 @@ async def test_execute_validation_error(executor):
 
     executor.register_tool("test_tool", dummy_tool, schema=ValidationSchema)
 
-    invalid_payload = json5.dumps({"tool": "test_tool", "arguments": {"param": "hello", "value": -1}})
+    invalid_payload = json5.dumps(
+        {"tool": "test_tool", "arguments": {"param": "hello", "value": -1}}
+    )
     result = await executor.execute(invalid_payload)
     assert "Ошибка валидации аргументов" in result

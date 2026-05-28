@@ -1,6 +1,7 @@
 """
 Базовые инструменты для работы с файловой системой.
 """
+
 from ..infrastructure.file_system import FileSystemService
 from ..infrastructure.cache import SimpleLRUCache
 from .permissions import register_tool, ToolRiskLevel
@@ -17,7 +18,14 @@ from .schemas import (
     CopyFileSchema,
 )
 
-_IGNORE_PATTERNS = {".git", "__pycache__", ".venv", ".mypy_cache", ".idea", "node_modules"}
+_IGNORE_PATTERNS = {
+    ".git",
+    "__pycache__",
+    ".venv",
+    ".mypy_cache",
+    ".idea",
+    "node_modules",
+}
 
 
 class FileSystemTools:
@@ -72,7 +80,9 @@ class FileSystemTools:
         except (OSError, ValueError) as e:
             return f"Ошибка при построении дерева: {e}"
 
-    @register_tool("читает содержимое файла.", schema=ReadFileSchema, risk_level=ToolRiskLevel.READ)
+    @register_tool(
+        "читает содержимое файла.", schema=ReadFileSchema, risk_level=ToolRiskLevel.READ
+    )
     def read_file(self, path: str) -> str:
         """Читает содержимое файла."""
         try:
@@ -85,7 +95,11 @@ class FileSystemTools:
         except (OSError, ValueError) as e:
             return f"Ошибка при чтении файла: {e}"
 
-    @register_tool("записывает текст в файл (перезаписывает).", schema=WriteFileSchema, risk_level=ToolRiskLevel.WRITE)
+    @register_tool(
+        "записывает текст в файл (перезаписывает).",
+        schema=WriteFileSchema,
+        risk_level=ToolRiskLevel.WRITE,
+    )
     def write_file(self, path: str, content: str) -> str:
         """Записывает текст в файл."""
         try:
@@ -110,8 +124,7 @@ class FileSystemTools:
             return f"Ошибка при обновлении файла {path}: {e}"
 
     @register_tool(
-        "читает определенный диапазон строк из файла. "
-        "Полезно для больших файлов.",
+        "читает определенный диапазон строк из файла. " "Полезно для больших файлов.",
         schema=ReadFileLinesSchema,
         risk_level=ToolRiskLevel.READ,
     )
@@ -135,7 +148,11 @@ class FileSystemTools:
         except (OSError, ValueError) as e:
             return f"Ошибка при чтении строк файла: {e}"
 
-    @register_tool("создает новую директорию", schema=CreateDirSchema, risk_level=ToolRiskLevel.WRITE)
+    @register_tool(
+        "создает новую директорию",
+        schema=CreateDirSchema,
+        risk_level=ToolRiskLevel.WRITE,
+    )
     def create_dir(self, path: str) -> str:
         """Создает директорию."""
         try:
@@ -158,7 +175,11 @@ class FileSystemTools:
         except (OSError, ValueError) as e:
             return f"Ошибка при перемещении {src} -> {dst}: {e}"
 
-    @register_tool("удаляет файл или директорию", schema=DeleteFileSchema, risk_level=ToolRiskLevel.DANGEROUS)
+    @register_tool(
+        "удаляет файл или директорию",
+        schema=DeleteFileSchema,
+        risk_level=ToolRiskLevel.DANGEROUS,
+    )
     def delete_file(self, path: str) -> str:
         """Удаляет файл или директорию."""
         try:

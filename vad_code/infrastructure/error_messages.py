@@ -12,12 +12,12 @@ class ErrorMessages:
         "tool_not_found": {
             "message": "Инструмент '{tool_name}' не найден",
             "suggestion": "Проверьте имя инструмента. Доступные инструменты: {available_tools}",
-            "example": "Пример: {{\"tool\": \"read_file\", \"arguments\": {{\"path\": \"file.txt\"}}}}",
+            "example": 'Пример: {{"tool": "read_file", "arguments": {{"path": "file.txt"}}}}',
         },
         "validation_error": {
             "message": "Ошибка валидации аргументов",
             "suggestion": "Проверьте типы и обязательные поля. Используйте schema для проверки.",
-            "example": "Пример: {{\"tool\": \"read_file\", \"arguments\": {{\"path\": \"file.txt\"}}}}",
+            "example": 'Пример: {{"tool": "read_file", "arguments": {{"path": "file.txt"}}}}',
         },
         "permission_denied": {
             "message": "Доступ запрещен",
@@ -32,7 +32,7 @@ class ErrorMessages:
         "file_not_found": {
             "message": "Файл не найден: {file_path}",
             "suggestion": "Проверьте путь к файлу. Используйте list_files или list_tree для просмотра структуры.",
-            "example": "Пример: {{\"tool\": \"list_files\", \"arguments\": {{\"path\": \".\"}}}}",
+            "example": 'Пример: {{"tool": "list_files", "arguments": {{"path": "."}}}}',
         },
         "permission_error": {
             "message": "Ошибка доступа к файлу: {file_path}",
@@ -47,7 +47,7 @@ class ErrorMessages:
         "invalid_json": {
             "message": "Ошибка парсинга JSON",
             "suggestion": "Проверьте формат JSON. Убедитесь, что все строки экранированы и скобки закрыты.",
-            "example": "Пример: {{\"tool\": \"read_file\", \"arguments\": {{\"path\": \"file.txt\"}}}}",
+            "example": 'Пример: {{"tool": "read_file", "arguments": {{"path": "file.txt"}}}}',
         },
         "command_forbidden": {
             "message": "Команда запрещена: {command}",
@@ -67,11 +67,7 @@ class ErrorMessages:
     }
 
     @classmethod
-    def format_error(
-        cls,
-        error_type: str,
-        **kwargs: object
-    ) -> str:
+    def format_error(cls, error_type: str, **kwargs: object) -> str:
         """
         Форматирует сообщение об ошибке с рекомендациями.
 
@@ -86,16 +82,24 @@ class ErrorMessages:
         lines = []
 
         # Основное сообщение
-        message = template["message"].format(**kwargs) if kwargs else template["message"]
+        message = (
+            template["message"].format(**kwargs) if kwargs else template["message"]
+        )
         lines.append(f"❌ {message}")
 
         # Рекомендация
-        suggestion = template["suggestion"].format(**kwargs) if kwargs else template["suggestion"]
+        suggestion = (
+            template["suggestion"].format(**kwargs)
+            if kwargs
+            else template["suggestion"]
+        )
         lines.append(f"💡 {suggestion}")
 
         # Пример (если есть)
         if "example" in template:
-            example = template["example"].format(**kwargs) if kwargs else template["example"]
+            example = (
+                template["example"].format(**kwargs) if kwargs else template["example"]
+            )
             lines.append(f"📝 {example}")
 
         return "\n".join(lines)
@@ -129,7 +133,9 @@ class ErrorMessages:
         return "\n".join(lines)
 
     @classmethod
-    def get_permission_info_message(cls, tool_name: str, risk_level: str, allowed_levels: list[str]) -> str:
+    def get_permission_info_message(
+        cls, tool_name: str, risk_level: str, allowed_levels: list[str]
+    ) -> str:
         """Генерирует сообщение об информации о разрешениях."""
         lines = [
             f"🔒 Инструмент '{tool_name}' требует уровень риска: {risk_level}",
@@ -180,9 +186,13 @@ def get_available_tools_message(available_tools: list[str]) -> str:
     return error_messages.get_available_tools_message(available_tools)
 
 
-def get_permission_info_message(tool_name: str, risk_level: str, allowed_levels: list[str]) -> str:
+def get_permission_info_message(
+    tool_name: str, risk_level: str, allowed_levels: list[str]
+) -> str:
     """Удобная функция для получения информации о разрешениях."""
-    return error_messages.get_permission_info_message(tool_name, risk_level, allowed_levels)
+    return error_messages.get_permission_info_message(
+        tool_name, risk_level, allowed_levels
+    )
 
 
 def get_command_security_message(command: str, reason: str) -> str:

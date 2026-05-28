@@ -1,4 +1,5 @@
 """Тесты для модуля bad_cases."""
+
 import json
 import os
 import tempfile
@@ -12,8 +13,8 @@ from vad_code.infrastructure.bad_cases import BadCaseManager, BadCase
 @pytest.fixture
 def temp_bad_cases_file():
     """Создает временный файл для тестирования."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        f.write('[]')
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        f.write("[]")
         temp_path = f.name
     return temp_path
 
@@ -21,7 +22,7 @@ def temp_bad_cases_file():
 @pytest.fixture
 def manager(temp_bad_cases_file):
     """Создает менеджер с временным файлом."""
-    with patch('vad_code.infrastructure.bad_cases.BAD_CASES_FILE', temp_bad_cases_file):
+    with patch("vad_code.infrastructure.bad_cases.BAD_CASES_FILE", temp_bad_cases_file):
         mgr = BadCaseManager()
         yield mgr
     # Очистка после теста
@@ -99,10 +100,12 @@ class TestBadCaseManager:
                 "resolution_notes": "",
             }
         ]
-        with open(temp_bad_cases_file, 'w', encoding='utf-8') as f:
+        with open(temp_bad_cases_file, "w", encoding="utf-8") as f:
             json.dump(test_data, f)
 
-        with patch('vad_code.infrastructure.bad_cases.BAD_CASES_FILE', temp_bad_cases_file):
+        with patch(
+            "vad_code.infrastructure.bad_cases.BAD_CASES_FILE", temp_bad_cases_file
+        ):
             mgr = BadCaseManager()
             assert len(mgr.cases) == 1
             assert mgr.cases[0].id == "case_1"
@@ -127,7 +130,7 @@ class TestBadCaseManager:
         )
 
         # Проверяем, что файл содержит данные
-        with open(temp_bad_cases_file, 'r', encoding='utf-8') as f:
+        with open(temp_bad_cases_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         assert len(data) == 1
         assert data[0]["user_input"] == "test input"
@@ -213,9 +216,11 @@ class TestBadCaseManager:
 
     def test_load_corrupted_file(self, temp_bad_cases_file):
         """Проверяем обработку поврежденного файла."""
-        with open(temp_bad_cases_file, 'w', encoding='utf-8') as f:
+        with open(temp_bad_cases_file, "w", encoding="utf-8") as f:
             f.write("invalid json")
 
-        with patch('vad_code.infrastructure.bad_cases.BAD_CASES_FILE', temp_bad_cases_file):
+        with patch(
+            "vad_code.infrastructure.bad_cases.BAD_CASES_FILE", temp_bad_cases_file
+        ):
             mgr = BadCaseManager()
             assert len(mgr.cases) == 0  # Должен создать пустой список

@@ -36,9 +36,7 @@ async def test_llm_client_complete_http_error(mocker):
     mock_response.text = "Internal Server Error"
 
     error = httpx.HTTPStatusError(
-        "Error",
-        request=mocker.Mock(),
-        response=mock_response
+        "Error", request=mocker.Mock(), response=mock_response
     )
     mock_post.return_value = mock_response
     mock_response.raise_for_status.side_effect = error
@@ -52,7 +50,9 @@ async def test_llm_client_complete_http_error(mocker):
 
 @pytest.mark.asyncio
 async def test_llm_client_complete_request_error(mocker):
-    mock_post = mocker.patch("httpx.AsyncClient.post", side_effect=httpx.RequestError("Connection failed"))
+    mocker.patch(
+        "httpx.AsyncClient.post", side_effect=httpx.RequestError("Connection failed")
+    )
 
     client = LLMClient()
     result = await client.complete([{"role": "user", "content": "Hi"}])

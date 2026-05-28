@@ -2,6 +2,7 @@
 Абстракция LLM-провайдеров.
 Поддерживает OpenAI-compatible (LM Studio, OpenAI), Ollama, Anthropic.
 """
+
 import abc
 import asyncio
 from typing import Any
@@ -56,7 +57,9 @@ class BaseLLMProvider(abc.ABC):
                         continue
                     return result
                 return result
-            except Exception as e:  # noqa: BLE001 - намеренно широкое исключение для retry-логики
+            except (
+                Exception
+            ) as e:  # noqa: BLE001 - намеренно широкое исключение для retry-логики
                 if attempt < max_retries:
                     delay = base_delay * (2 ** (attempt - 1))
                     log.warning(
@@ -104,7 +107,7 @@ class BaseHTTPProvider(BaseLLMProvider):
             return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
         except httpx.RequestError as e:
             return f"Ошибка соединения: {e}"
-        except (KeyError, IndexError):
+        except KeyError, IndexError:
             return "Ошибка: неожиданный формат ответа"
 
     @abc.abstractmethod

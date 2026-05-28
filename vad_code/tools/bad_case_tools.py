@@ -1,6 +1,7 @@
 """
 Инструменты для управления проблемными случаями.
 """
+
 from ..infrastructure.bad_cases import bad_case_manager
 from .permissions import register_tool
 from .schemas import (
@@ -44,7 +45,9 @@ class BadCaseTools:
     def list_bad_cases(self, limit: int = 10, unresolved_only: bool = False) -> str:
         """Возвращает список проблемных случаев."""
         try:
-            cases = bad_case_manager.list_cases(limit=limit, unresolved_only=unresolved_only)
+            cases = bad_case_manager.list_cases(
+                limit=limit, unresolved_only=unresolved_only
+            )
             if not cases:
                 return "Проблемных случаев не найдено."
 

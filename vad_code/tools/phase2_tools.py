@@ -1,15 +1,14 @@
 """
 Инструменты Фазы 2: Расширение возможностей (v0.5.0).
 """
+
 import ast
+import hashlib
 import re
 import subprocess
-import hashlib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, Future
 
-from ..infrastructure.file_system import FileSystemService
-from ..infrastructure.command_security import command_validator
 from .permissions import register_tool, ToolRiskLevel
 from .schemas import (
     UninstallPackageSchema,
@@ -27,6 +26,8 @@ from .schemas import (
     KillProcessSchema,
     RunBackgroundTaskSchema,
 )
+from ..infrastructure.command_security import command_validator
+from ..infrastructure.file_system import FileSystemService
 
 
 class Phase2Tools:
@@ -76,7 +77,9 @@ class Phase2Tools:
         schema=ListPackagesSchema,
         risk_level=ToolRiskLevel.READ,
     )
-    def list_packages(self, filter_pattern: str = "", show_upgradable: bool = False) -> str:
+    def list_packages(
+        self, filter_pattern: str = "", show_upgradable: bool = False
+    ) -> str:
         """Показывает список установленных пакетов через uv."""
         try:
             args = ["uv", "pip", "list"]
@@ -145,10 +148,14 @@ class Phase2Tools:
                     cwd=self.fs.root,
                     check=False,
                 )
-                if outdated_result.returncode != 0 or not outdated_result.stdout.strip():
+                if (
+                    outdated_result.returncode != 0
+                    or not outdated_result.stdout.strip()
+                ):
                     return "Нет пакетов для обновления."
 
                 import json
+
                 try:
                     packages = json.loads(outdated_result.stdout)
                     if not packages:
@@ -200,6 +207,7 @@ class Phase2Tools:
             cmd_args = [tool]
             if args:
                 import shlex
+
                 cmd_args.extend(shlex.split(args))
             cmd_args.append(path)
 
@@ -289,7 +297,9 @@ class Phase2Tools:
                             file_path.write_text(new_content, encoding="utf-8")
 
                 except (UnicodeDecodeError, PermissionError) as e:
-                    changes.append(f"  {file_path.relative_to(self.fs.root)}: ошибка - {e}")
+                    changes.append(
+                        f"  {file_path.relative_to(self.fs.root)}: ошибка - {e}"
+                    )
 
             if not changes:
                 return f"Не найдено совпадений для '{search_pattern}' в файлах '{file_glob}'."
@@ -335,7 +345,7 @@ class Phase2Tools:
 
                     # Скользящее окно
                     for i in range(len(lines) - min_lines + 1):
-                        block = "\n".join(lines[i:i + min_lines]).strip()
+                        block = "\n".join(lines[i : i + min_lines]).strip()
                         if not block or len(block) < 20:  # Пропускаем пустые/короткие
                             continue
 
@@ -344,7 +354,7 @@ class Phase2Tools:
                             blocks[block_hash] = []
                         blocks[block_hash].append((rel_path, i + 1))
 
-                except (UnicodeDecodeError, PermissionError):
+                except UnicodeDecodeError, PermissionError:
                     continue
 
             # Находим дубликаты
@@ -392,7 +402,7 @@ class Phase2Tools:
                 try:
                     content = file_path.read_text(encoding="utf-8")
                     tree = ast.parse(content)
-                except (SyntaxError, UnicodeDecodeError):
+                except SyntaxError, UnicodeDecodeError:
                     return
 
                 for node in ast.walk(tree):
@@ -400,12 +410,14 @@ class Phase2Tools:
                         complexity = self._calculate_complexity(node)
                         if complexity >= threshold:
                             rel_path = file_path.relative_to(self.fs.root)
-                            results.append({
-                                "file": str(rel_path),
-                                "function": node.name,
-                                "line": node.lineno,
-                                "complexity": complexity,
-                            })
+                            results.append(
+                                {
+                                    "file": str(rel_path),
+                                    "function": node.name,
+                                    "line": node.lineno,
+                                    "complexity": complexity,
+                                }
+                            )
 
             if target_path.is_file():
                 _analyze_file(target_path)
@@ -428,7 +440,9 @@ class Phase2Tools:
         except Exception as e:
             return f"Ошибка при анализе сложности: {e}"
 
-    def _calculate_complexity(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
+    def _calculate_complexity(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef
+    ) -> int:
         """Расчёт цикломатической сложности функции."""
         complexity = 1  # Базовая сложность
 
@@ -465,7 +479,7 @@ class Phase2Tools:
                 try:
                     content = file_path.read_text(encoding="utf-8")
                     tree = ast.parse(content)
-                except (SyntaxError, UnicodeDecodeError):
+                except SyntaxError, UnicodeDecodeError:
                     continue
 
                 rel_path = str(file_path.relative_to(self.fs.root))
@@ -494,7 +508,8 @@ class Phase2Tools:
                     if isinstance(node, ast.ClassDef):
                         # Большой класс (>20 методов)
                         methods = [
-                            n for n in node.body
+                            n
+                            for n in node.body
                             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
                         ]
                         if len(methods) > 20:
@@ -546,7 +561,9 @@ class Phase2Tools:
             lines = content.splitlines(keepends=True)
 
             for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if isinstance(
+                    node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+                ):
                     if function_name and node.name != function_name:
                         continue
 
@@ -645,7 +662,7 @@ class Phase2Tools:
                 try:
                     content = file_path.read_text(encoding="utf-8")
                     tree = ast.parse(content)
-                except (SyntaxError, UnicodeDecodeError):
+                except SyntaxError, UnicodeDecodeError:
                     continue
 
                 rel_path = str(file_path.relative_to(self.fs.root))
@@ -700,7 +717,7 @@ class Phase2Tools:
                 try:
                     content = file_path.read_text(encoding="utf-8")
                     tree = ast.parse(content)
-                except (SyntaxError, UnicodeDecodeError):
+                except SyntaxError, UnicodeDecodeError:
                     continue
 
                 rel_path = str(file_path.relative_to(self.fs.root))
@@ -728,7 +745,10 @@ class Phase2Tools:
                             used = True
                             break
                         if isinstance(node, ast.Attribute):
-                            if isinstance(node.value, ast.Name) and node.value.id == name:
+                            if (
+                                isinstance(node.value, ast.Name)
+                                and node.value.id == name
+                            ):
                                 used = True
                                 break
 
@@ -763,6 +783,7 @@ class Phase2Tools:
         """Показывает список активных процессов."""
         try:
             import platform
+
             system = platform.system()
 
             if system == "Windows":
@@ -820,6 +841,7 @@ class Phase2Tools:
 
             if system == "Windows":
                 import ctypes
+
                 kernel32 = ctypes.windll.kernel32
                 handle = kernel32.OpenProcess(1, False, pid)
                 if handle == 0:
@@ -838,7 +860,9 @@ class Phase2Tools:
                 except PermissionError:
                     return f"Ошибка: нет прав для завершения процесса {pid}."
 
-            return f"Процесс {pid} успешно завершён {'(принудительно)' if force else ''}."
+            return (
+                f"Процесс {pid} успешно завершён {'(принудительно)' if force else ''}."
+            )
 
         except Exception as e:
             return f"Ошибка при завершении процесса: {e}"
@@ -857,6 +881,7 @@ class Phase2Tools:
 
         try:
             import shlex
+
             args = shlex.split(command)
 
             # Запускаем в отдельном потоке
@@ -924,7 +949,7 @@ class Phase2Tools:
 
                     # Проверка длины функции
                     func_lines = 0
-                    if hasattr(node, 'end_lineno') and node.end_lineno:
+                    if hasattr(node, "end_lineno") and node.end_lineno:
                         func_lines = node.end_lineno - node.lineno
 
                     if func_lines > 50:
@@ -951,7 +976,11 @@ class Phase2Tools:
 
                 elif isinstance(node, ast.ClassDef):
                     # Проверка количества методов
-                    methods = [n for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+                    methods = [
+                        n
+                        for n in node.body
+                        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ]
                     if len(methods) > 10:
                         suggestions.append(
                             f"⚠️ {node.name}: класс содержит {len(methods)} методов. "
@@ -1013,7 +1042,6 @@ class Phase2Tools:
                         in_section = False
                         section_start = -1
                         section_end = -1
-                        section_indent = 0
 
                         for i, line in enumerate(lines):
                             if line.startswith("## ") and section in line:
@@ -1021,21 +1049,24 @@ class Phase2Tools:
                                 section_start = i
                             elif in_section and line.startswith("## "):
                                 section_end = i
-                                in_section = False
                                 break
 
                         if section_end == -1:
                             section_end = len(lines)
 
                         # Заменяем секцию
-                        new_lines = lines[:section_start + 1] + [content] + lines[section_end:]
+                        new_lines = (
+                            lines[: section_start + 1] + [content] + lines[section_end:]
+                        )
                         readme_content = "\n".join(new_lines)
 
                     target_path.write_text(readme_content, encoding="utf-8")
                     return f"Секция '{section}' в {path} обновлена."
                 else:
                     # Создаем новый README
-                    target_path.write_text(f"# Проект\n\n## {section}\n{content}\n", encoding="utf-8")
+                    target_path.write_text(
+                        f"# Проект\n\n## {section}\n{content}\n", encoding="utf-8"
+                    )
                     return f"Создан новый файл {path} с секцией '{section}'."
             else:
                 # Полная перезапись
@@ -1093,7 +1124,9 @@ class Phase2Tools:
                     features.append(f"- {message} ({hash_val[:7]})")
                 elif msg_lower.startswith("fix"):
                     fixes.append(f"- {message} ({hash_val[:7]})")
-                elif msg_lower.startswith(("refactor", "improve", "perf", "style", "chore")):
+                elif msg_lower.startswith(
+                    ("refactor", "improve", "perf", "style", "chore")
+                ):
                     improvements.append(f"- {message} ({hash_val[:7]})")
                 else:
                     other.append(f"- {message} ({hash_val[:7]})")

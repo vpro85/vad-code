@@ -1,4 +1,9 @@
-from vad_code.tools.schemas import ListFilesSchema, ReadFileSchema, WriteFileSchema, ReplaceInFileSchema
+from vad_code.tools.schemas import (
+    ListFilesSchema,
+    ReadFileSchema,
+    WriteFileSchema,
+    ReplaceInFileSchema,
+)
 import pytest
 from pydantic import ValidationError
 
@@ -29,11 +34,7 @@ def test_write_file_schema():
 
 
 def test_replace_in_file_schema():
-    schema = ReplaceInFileSchema(
-        path="test.txt",
-        old_text="old",
-        new_text="new"
-    )
+    schema = ReplaceInFileSchema(path="test.txt", old_text="old", new_text="new")
     assert schema.path == "test.txt"
     assert schema.old_text == "old"
     assert schema.new_text == "new"

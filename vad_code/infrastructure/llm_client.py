@@ -1,4 +1,5 @@
 """Клиент для взаимодействия с LLM."""
+
 from typing import Any
 
 import httpx
@@ -34,7 +35,7 @@ class LLMClient:
             return f"HTTP-ошибка: {e.response.status_code} - {e.response.text}"
         except httpx.RequestError as e:
             return f"Ошибка соединения: {e}"
-        except (KeyError, IndexError):
+        except KeyError, IndexError:
             return "Ошибка: неожиданный формат ответа от LM Studio"
 
     async def close(self) -> None:

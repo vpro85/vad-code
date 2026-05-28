@@ -1,4 +1,5 @@
 """Тесты для модуля метрик."""
+
 import time
 import pytest
 

@@ -9,7 +9,7 @@ from vad_code.tools.git_tools import GitTools
 @pytest.fixture
 def mock_settings(tmp_path):
     # Переопределяем корень проекта для FileSystemService
-    with patch('vad_code.infrastructure.file_system.settings') as mock:
+    with patch("vad_code.infrastructure.file_system.settings") as mock:
         mock.project_root = str(tmp_path)
         yield mock
 
@@ -19,8 +19,16 @@ def git_repo(mock_settings, tmp_path):
     # Инициализируем git репозиторий в tmp_path
     subprocess.run(["git", "init"], cwd=str(tmp_path), capture_output=True)
     # Настраиваем пользователя (обязательно для коммитов)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=str(tmp_path), capture_output=True)
-    subprocess.run(["git", "config", "user.name", "Test User"], cwd=str(tmp_path), capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=str(tmp_path),
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"],
+        cwd=str(tmp_path),
+        capture_output=True,
+    )
     return tmp_path
 
 
@@ -59,7 +67,9 @@ def test_git_diff(tools, git_repo):
     file = git_repo / "test.txt"
     file.write_text("version 1")
     subprocess.run(["git", "add", "test.txt"], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "v1"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "v1"], cwd=str(git_repo), capture_output=True
+    )
     # Изменяем файл
     file.write_text("version 2")
     diff_res = tools.git_diff()
@@ -71,7 +81,9 @@ def test_git_diff_staged(tools, git_repo):
     file = git_repo / "test.txt"
     file.write_text("version 1")
     subprocess.run(["git", "add", "test.txt"], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "v1"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "v1"], cwd=str(git_repo), capture_output=True
+    )
     # Изменяем файл и добавляем в индекс
     file.write_text("version 2")
     subprocess.run(["git", "add", "test.txt"], cwd=str(git_repo), capture_output=True)
@@ -86,7 +98,9 @@ def test_git_branch_checkout(tools, git_repo):
     file = git_repo / "initial.txt"
     file.write_text("initial")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "initial"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "initial"], cwd=str(git_repo), capture_output=True
+    )
     # Создаем ветку
     branch_res = tools.git_branch("feature")
     assert "Ошибка Git" not in branch_res
@@ -104,9 +118,13 @@ def test_git_show(tools, git_repo):
     file = git_repo / "test.txt"
     file.write_text("content")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "show test"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "show test"], cwd=str(git_repo), capture_output=True
+    )
     # Получаем хэш последнего коммита
-    log = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(git_repo), text=True).strip()
+    log = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=str(git_repo), text=True
+    ).strip()
 
     show_res = tools.git_show(log)
     assert "show test" in show_res
@@ -117,7 +135,9 @@ def test_git_stash(tools, git_repo):
     file = git_repo / "test.txt"
     file.write_text("initial")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "init"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "init"], cwd=str(git_repo), capture_output=True
+    )
     # Вносим изменения и прячем их
     file.write_text("modified")
     tools.git_stash("push")
@@ -135,22 +155,33 @@ def test_git_merge(tools, git_repo):
     file1 = git_repo / "f1.txt"
     file1.write_text("main")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "main commit"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "main commit"], cwd=str(git_repo), capture_output=True
+    )
     # Feature branch commit
     tools.git_branch("feat")
     tools.git_checkout("feat")
     file2 = git_repo / "f2.txt"
     file2.write_text("feature")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "feat commit"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "feat commit"], cwd=str(git_repo), capture_output=True
+    )
     # Merge back to main
-    tools.git_checkout("master")  # или 'main' в зависимости от git версии, но init обычно делает master
+    tools.git_checkout(
+        "master"
+    )  # или 'main' в зависимости от git версии, но init обычно делает master
     # Если git по умолчанию создал 'master', переключаемся на него.
     # В новых версиях может быть 'main'. Проверим текущую ветку.
-    current_branch = subprocess.check_output(["git", "branch", "--show-current"], cwd=str(git_repo), text=True).strip()
+    current_branch = subprocess.check_output(
+        ["git", "branch", "--show-current"], cwd=str(git_repo), text=True
+    ).strip()
     tools.git_checkout(current_branch)
     merge_res = tools.git_merge("feat")
-    assert "Merge made by the 'recursive' strategy" in merge_res or "Fast-forward" in merge_res
+    assert (
+        "Merge made by the 'recursive' strategy" in merge_res
+        or "Fast-forward" in merge_res
+    )
     assert (git_repo / "f2.txt").exists()
 
 
@@ -158,7 +189,9 @@ def test_git_blame(tools, git_repo):
     file = git_repo / "test.txt"
     file.write_text("line 1\nline 2")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "blame test"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "blame test"], cwd=str(git_repo), capture_output=True
+    )
 
     blame_res = tools.git_blame("test.txt")
     assert "Ошибка Git" not in blame_res
@@ -169,10 +202,14 @@ def test_git_log_file(tools, git_repo):
     file = git_repo / "test.txt"
     file.write_text("v1")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "commit 1"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "commit 1"], cwd=str(git_repo), capture_output=True
+    )
     file.write_text("v2")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "commit 2"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "commit 2"], cwd=str(git_repo), capture_output=True
+    )
 
     log_res = tools.git_log_file("test.txt")
     assert "Ошибка Git" not in log_res
@@ -185,7 +222,9 @@ def test_git_current_branch(tools, git_repo):
     file = git_repo / "test.txt"
     file.write_text("content")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "initial"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "initial"], cwd=str(git_repo), capture_output=True
+    )
 
     # Проверяем текущую ветку
     branch_res = tools.git_current_branch()
@@ -199,13 +238,23 @@ def test_git_search_commits(tools, git_repo):
     file = git_repo / "test.txt"
     file.write_text("v1")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "feat: add feature 1"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "feat: add feature 1"],
+        cwd=str(git_repo),
+        capture_output=True,
+    )
     file.write_text("v2")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "fix: bug fix"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "fix: bug fix"], cwd=str(git_repo), capture_output=True
+    )
     file.write_text("v3")
     subprocess.run(["git", "add", "."], cwd=str(git_repo), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "feat: add feature 2"], cwd=str(git_repo), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "feat: add feature 2"],
+        cwd=str(git_repo),
+        capture_output=True,
+    )
 
     # Ищем коммиты с "feat"
     search_res = tools.git_search_commits("feat")

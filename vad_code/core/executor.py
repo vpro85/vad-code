@@ -1,4 +1,5 @@
 """Модуль исполнителя инструментов."""
+
 import asyncio
 import inspect
 import time
@@ -10,32 +11,40 @@ from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.backup_manager import backup_manager
 from vad_code.infrastructure.audit_logger import audit_logger
 from vad_code.infrastructure.metrics import session_metrics
-from vad_code.infrastructure.error_messages import format_error, get_available_tools_message
+from vad_code.infrastructure.error_messages import (
+    format_error,
+    get_available_tools_message,
+)
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
 
 class ToolExecutionError(Exception):
     """Базовое исключение для ошибок выполнения инструментов."""
+
     pass
 
 
 class ToolValidationError(ToolExecutionError):
     """Ошибка валидации аргументов."""
+
     pass
 
 
 class ToolPermissionError(ToolExecutionError):
     """Ошибка доступа к инструменту."""
+
     pass
 
 
 class ToolNotFoundError(ToolExecutionError):
     """Инструмент не найден."""
+
     pass
 
 
 class ToolTimeoutError(ToolExecutionError):
     """Превышено время выполнения инструмента."""
+
     pass
 
 
@@ -52,7 +61,13 @@ class ToolExecutor:
         self.metadata: dict[str, dict[str, Any]] = {}
         self.timeout = timeout or self.DEFAULT_TIMEOUT
 
-    def register_tool(self, name: str, func: Callable[..., Any], schema: Any = None, metadata: Optional[dict[str, Any]] = None) -> None:
+    def register_tool(
+        self,
+        name: str,
+        func: Callable[..., Any],
+        schema: Any = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> None:
         """Регистрация инструмента: имя, сама функция, Pydantic-схема и метаданные."""
         self.tools[name] = func
         if schema:
@@ -93,7 +108,9 @@ class ToolExecutor:
                 f"запрещен текущими настройками безопасности."
             )
 
-    def _validate_arguments(self, func_name: str, args: dict[str, Any]) -> dict[str, Any]:
+    def _validate_arguments(
+        self, func_name: str, args: dict[str, Any]
+    ) -> dict[str, Any]:
         """Валидирует аргументы через Pydantic-схему."""
         if func_name not in self.schemas:
             return args
@@ -103,19 +120,25 @@ class ToolExecutor:
             validated_model = schema.model_validate(args)
             return validated_model.model_dump()
         except (ValueError, TypeError) as e:
-            raise ToolValidationError(f"Ошибка валидации аргументов для '{func_name}': {e}") from e
+            raise ToolValidationError(
+                f"Ошибка валидации аргументов для '{func_name}': {e}"
+            ) from e
 
     def _find_tool(self, func_name: str) -> Callable[..., Any]:
         """Находит зарегистрированный инструмент."""
         if func_name not in self.tools:
-            available_tools = ", ".join(sorted(self.tools.keys())) if self.tools else "нет"
+            available_tools = (
+                ", ".join(sorted(self.tools.keys())) if self.tools else "нет"
+            )
             raise ToolNotFoundError(
                 f"Инструмент '{func_name}' не зарегистрирован. "
                 f"Доступные инструменты: {available_tools}"
             )
         return self.tools[func_name]
 
-    async def _execute_tool(self, func: Callable[..., Any], args: dict[str, Any]) -> Any:
+    async def _execute_tool(
+        self, func: Callable[..., Any], args: dict[str, Any]
+    ) -> Any:
         """Выполняет инструмент с таймаутом."""
         try:
             if inspect.iscoroutinefunction(func):
@@ -124,17 +147,28 @@ class ToolExecutor:
                 loop = asyncio.get_event_loop()
                 return await asyncio.wait_for(
                     loop.run_in_executor(None, lambda: func(**args)),
-                    timeout=self.timeout
+                    timeout=self.timeout,
                 )
         except asyncio.TimeoutError:
             raise ToolTimeoutError(
                 f"Превышено время выполнения инструмента (таймаут: {self.timeout}с)"
             )
 
-    def _get_affected_file_path(self, func_name: str, args: dict[str, Any]) -> Optional[str]:
+    def _get_affected_file_path(
+        self, func_name: str, args: dict[str, Any]
+    ) -> Optional[str]:
         """Пытается определить путь к файлу, который будет изменен."""
         # Приоритетные имена аргументов, содержащих путь
-        path_keys = ["path", "file_path", "src", "source", "filename", "target", "dst", "destination"]
+        path_keys = [
+            "path",
+            "file_path",
+            "src",
+            "source",
+            "filename",
+            "target",
+            "dst",
+            "destination",
+        ]
         for key in path_keys:
             if key in args and isinstance(args[key], str):
                 return args[key]
@@ -204,13 +238,19 @@ class ToolExecutor:
             log.error("❌ Validation Error: %s", e)
             error_msg = format_error("validation_error", tool_name=func_name)
             if call_id:
-                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+                audit_logger.end_call(
+                    call_id, error_msg, success=False, error_message=str(e)
+                )
             return error_msg
         except ToolPermissionError as e:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.warning("🚫 Permission Denied: %s", e)
-            allowed = [level.value for level in permission_manager.allowed_levels] if permission_manager.allowed_levels else []
+            allowed = (
+                [level.value for level in permission_manager.allowed_levels]
+                if permission_manager.allowed_levels
+                else []
+            )
 
             # Получаем risk_level заново, так как проверка могла произойти до его определения
             tool_meta = self.metadata.get(func_name, {})
@@ -220,10 +260,12 @@ class ToolExecutor:
                 "permission_denied",
                 tool_name=func_name,
                 risk_level=risk_level.value,
-                allowed_levels=allowed
+                allowed_levels=allowed,
             )
             if call_id:
-                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+                audit_logger.end_call(
+                    call_id, error_msg, success=False, error_message=str(e)
+                )
             return error_msg
         except ToolNotFoundError as e:
             execution_time = time.time() - start_time
@@ -233,22 +275,24 @@ class ToolExecutor:
             error_msg = format_error(
                 "tool_not_found",
                 tool_name=func_name,
-                available_tools=get_available_tools_message(available)
+                available_tools=get_available_tools_message(available),
             )
             if call_id:
-                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+                audit_logger.end_call(
+                    call_id, error_msg, success=False, error_message=str(e)
+                )
             return error_msg
         except ToolTimeoutError as e:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.error("⏱️ Timeout: %s", e)
             error_msg = format_error(
-                "timeout_error",
-                tool_name=func_name,
-                timeout=self.timeout
+                "timeout_error", tool_name=func_name, timeout=self.timeout
             )
             if call_id:
-                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+                audit_logger.end_call(
+                    call_id, error_msg, success=False, error_message=str(e)
+                )
             return error_msg
         except ToolExecutionError as e:
             execution_time = time.time() - start_time
@@ -259,10 +303,12 @@ class ToolExecutor:
                 error_type_name=type(e).__name__,
                 error_message=str(e),
                 message=f"Ошибка выполнения '{func_name}'",
-                suggestion="Проверьте параметры инструмента и попробуйте снова."
+                suggestion="Проверьте параметры инструмента и попробуйте снова.",
             )
             if call_id:
-                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+                audit_logger.end_call(
+                    call_id, error_msg, success=False, error_message=str(e)
+                )
             return error_msg
         except Exception as e:
             # Неожиданные ошибки
@@ -274,8 +320,10 @@ class ToolExecutor:
                 error_type_name=type(e).__name__,
                 error_message=str(e),
                 message=f"Неожиданная ошибка в '{func_name}'",
-                suggestion="Проверьте логи для деталей."
+                suggestion="Проверьте логи для деталей.",
             )
             if call_id:
-                audit_logger.end_call(call_id, error_msg, success=False, error_message=str(e))
+                audit_logger.end_call(
+                    call_id, error_msg, success=False, error_message=str(e)
+                )
             return error_msg

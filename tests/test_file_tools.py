@@ -7,7 +7,7 @@ from vad_code.tools.file_tools import FileTools
 
 @pytest.fixture
 def mock_settings(tmp_path):
-    with patch('vad_code.infrastructure.file_system.settings') as mock:
+    with patch("vad_code.infrastructure.file_system.settings") as mock:
         mock.project_root = str(tmp_path)
         yield mock
 

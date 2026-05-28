@@ -1,4 +1,5 @@
 """Тесты для модуля audit_logger."""
+
 import json
 import time
 
@@ -37,10 +38,7 @@ def test_end_call_with_error(audit_logger):
     """Проверяет регистрацию ошибки."""
     call_id = audit_logger.start_call("write_file", {"path": "test.txt"})
     record = audit_logger.end_call(
-        call_id,
-        "Ошибка записи",
-        success=False,
-        error_message="Permission denied"
+        call_id, "Ошибка записи", success=False, error_message="Permission denied"
     )
 
     assert record.success is False
@@ -161,7 +159,7 @@ def test_record_serialization():
         arguments={"path": "test.txt"},
         result="content",
         success=True,
-        duration_ms=10.5
+        duration_ms=10.5,
     )
 
     data = record.to_dict()

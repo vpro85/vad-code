@@ -2,6 +2,7 @@
 Модуль мониторинга и метрик.
 Сбор статистики по вызовам инструментов, токенам, времени отклика.
 """
+
 import time
 from dataclasses import dataclass, field
 
@@ -11,12 +12,13 @@ from vad_code.infrastructure.logger import log
 @dataclass
 class ToolMetrics:
     """Метрики для одного инструмента."""
+
     name: str
     call_count: int = 0
     success_count: int = 0
     error_count: int = 0
     total_execution_time: float = 0.0  # секунды
-    min_execution_time: float = float('inf')
+    min_execution_time: float = float("inf")
     max_execution_time: float = 0.0
 
     @property
@@ -37,6 +39,7 @@ class ToolMetrics:
 @dataclass
 class TokenMetrics:
     """Метрики использования токенов."""
+
     total_prompt_tokens: int = 0
     total_completion_tokens: int = 0
     total_tokens: int = 0
@@ -60,6 +63,7 @@ class TokenMetrics:
 @dataclass
 class SessionMetrics:
     """Метрики сессии."""
+
     start_time: float = field(default_factory=time.time)
     total_tool_calls: int = 0
     total_errors: int = 0
@@ -84,7 +88,9 @@ class SessionMetrics:
             self.tool_metrics[tool_name] = ToolMetrics(name=tool_name)
         return self.tool_metrics[tool_name]
 
-    def record_tool_call(self, tool_name: str, execution_time: float, success: bool) -> None:
+    def record_tool_call(
+        self, tool_name: str, execution_time: float, success: bool
+    ) -> None:
         """Регистрирует вызов инструмента."""
         metrics = self.get_or_create_tool_metrics(tool_name)
         metrics.call_count += 1
@@ -121,28 +127,30 @@ class SessionMetrics:
         # Токены
         if self.token_metrics.request_count > 0:
             tm = self.token_metrics
-            lines.extend([
-                "📝 Токены",
-                "-" * 30,
-                f"  Запросов к LLM: {tm.request_count}",
-                f"  Токенов в промптах: {tm.total_prompt_tokens:,}",
-                f"  Токенов в ответах: {tm.total_completion_tokens:,}",
-                f"  Всего токенов: {tm.total_tokens:,}",
-                f"  Среднее на запрос: {tm.avg_prompt_tokens:.0f} + {tm.avg_completion_tokens:.0f}",
-                "",
-            ])
+            lines.extend(
+                [
+                    "📝 Токены",
+                    "-" * 30,
+                    f"  Запросов к LLM: {tm.request_count}",
+                    f"  Токенов в промптах: {tm.total_prompt_tokens:,}",
+                    f"  Токенов в ответах: {tm.total_completion_tokens:,}",
+                    f"  Всего токенов: {tm.total_tokens:,}",
+                    f"  Среднее на запрос: {tm.avg_prompt_tokens:.0f} + {tm.avg_completion_tokens:.0f}",
+                    "",
+                ]
+            )
 
         # Метрики по инструментам
         if self.tool_metrics:
-            lines.extend([
-                "🛠️ Метрики по инструментам",
-                "-" * 30,
-            ])
+            lines.extend(
+                [
+                    "🛠️ Метрики по инструментам",
+                    "-" * 30,
+                ]
+            )
             # Сортируем по количеству вызовов (по убыванию)
             sorted_tools = sorted(
-                self.tool_metrics.values(),
-                key=lambda m: m.call_count,
-                reverse=True
+                self.tool_metrics.values(), key=lambda m: m.call_count, reverse=True
             )
             for tool_metric in sorted_tools:
                 lines.append(

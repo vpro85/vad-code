@@ -40,9 +40,7 @@ async def test_openai_provider_with_api_key(mocker):
 async def test_openai_provider_max_tokens(mocker):
     mock_post = mocker.patch("httpx.AsyncClient.post")
     mock_response = mocker.Mock()
-    mock_response.json.return_value = {
-        "choices": [{"message": {"content": "OK"}}]
-    }
+    mock_response.json.return_value = {"choices": [{"message": {"content": "OK"}}]}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 
@@ -62,9 +60,7 @@ async def test_openai_provider_max_tokens(mocker):
 async def test_ollama_provider_success(mocker):
     mock_post = mocker.patch("httpx.AsyncClient.post")
     mock_response = mocker.Mock()
-    mock_response.json.return_value = {
-        "message": {"content": "Ollama response"}
-    }
+    mock_response.json.return_value = {"message": {"content": "Ollama response"}}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 
@@ -80,9 +76,7 @@ async def test_ollama_provider_success(mocker):
 async def test_ollama_provider_max_tokens(mocker):
     mock_post = mocker.patch("httpx.AsyncClient.post")
     mock_response = mocker.Mock()
-    mock_response.json.return_value = {
-        "message": {"content": "OK"}
-    }
+    mock_response.json.return_value = {"message": {"content": "OK"}}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 
@@ -100,9 +94,7 @@ async def test_ollama_provider_max_tokens(mocker):
 async def test_anthropic_provider_success(mocker):
     mock_post = mocker.patch("httpx.AsyncClient.post")
     mock_response = mocker.Mock()
-    mock_response.json.return_value = {
-        "content": [{"text": "Anthropic response"}]
-    }
+    mock_response.json.return_value = {"content": [{"text": "Anthropic response"}]}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 
@@ -122,9 +114,7 @@ async def test_anthropic_provider_success(mocker):
 async def test_anthropic_provider_system_prompt(mocker):
     mock_post = mocker.patch("httpx.AsyncClient.post")
     mock_response = mocker.Mock()
-    mock_response.json.return_value = {
-        "content": [{"text": "OK"}]
-    }
+    mock_response.json.return_value = {"content": [{"text": "OK"}]}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 

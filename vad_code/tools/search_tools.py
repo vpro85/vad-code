@@ -1,6 +1,7 @@
 """
 Инструменты для поиска в файлах.
 """
+
 import re
 
 from ..infrastructure.file_system import FileSystemService
@@ -32,7 +33,9 @@ class SearchTools:
             compiled = re.compile(query)
 
             for filepath in sorted(root.rglob(file_glob)):
-                if any(part in {".git", "__pycache__", ".venv"} for part in filepath.parts):
+                if any(
+                    part in {".git", "__pycache__", ".venv"} for part in filepath.parts
+                ):
                     continue
                 try:
                     lines = filepath.read_text(encoding="utf-8").splitlines()
@@ -40,7 +43,7 @@ class SearchTools:
                         if compiled.search(line):
                             rel = filepath.relative_to(root)
                             results.append(f"{rel}:{lineno}: {line.strip()}")
-                except (OSError, UnicodeDecodeError):
+                except OSError, UnicodeDecodeError:
                     continue
 
             if not results:
@@ -96,7 +99,7 @@ class SearchTools:
                     end = min(len(lines), i + context_lines + 1)
                     context = lines[start:end]
                     match_block = "\n".join(
-                        f"{j+1}: {l}" for j, l in enumerate(context, start=start)
+                        f"{j + 1}: {l}" for j, l in enumerate(context, start=start)
                     )
                     matches.append(match_block)
 

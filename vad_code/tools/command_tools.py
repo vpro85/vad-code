@@ -1,13 +1,19 @@
 """
 Инструменты для выполнения команд.
 """
+
 import shlex
 import subprocess
 
 from ..infrastructure.file_system import FileSystemService
 from ..infrastructure.command_security import command_validator
 from .permissions import register_tool, ToolRiskLevel
-from .schemas import RunCommandSchema, RunTestsSchema, FormatCodeSchema, InstallPackageSchema
+from .schemas import (
+    RunCommandSchema,
+    RunTestsSchema,
+    FormatCodeSchema,
+    InstallPackageSchema,
+)
 
 
 class CommandTools:
@@ -77,7 +83,9 @@ class CommandTools:
         schema=RunTestsSchema,
         risk_level=ToolRiskLevel.READ,
     )
-    def run_tests(self, path: str = ".", verbose: bool = True, timeout: int = 120) -> str:
+    def run_tests(
+        self, path: str = ".", verbose: bool = True, timeout: int = 120
+    ) -> str:
         """Запускает pytest в указанном пути."""
         try:
             args = ["pytest", path]
@@ -116,7 +124,9 @@ class CommandTools:
         schema=FormatCodeSchema,
         risk_level=ToolRiskLevel.WRITE,
     )
-    def format_code(self, path: str = ".", tool: str = "black", check_only: bool = False) -> str:
+    def format_code(
+        self, path: str = ".", tool: str = "black", check_only: bool = False
+    ) -> str:
         """Форматирует код с помощью указанного инструмента."""
         if tool not in ("black", "autopep8", "isort"):
             return f"Ошибка: неизвестный инструмент '{tool}'. Используйте: black, autopep8, isort"
@@ -159,7 +169,9 @@ class CommandTools:
             return output if output.strip() else f"Форматирование завершено ({tool})."
 
         except FileNotFoundError:
-            return f"Ошибка: инструмент '{tool}' не установлен. Установите его через uv."
+            return (
+                f"Ошибка: инструмент '{tool}' не установлен. Установите его через uv."
+            )
         except subprocess.TimeoutExpired:
             return "Ошибка: время форматирования истекло (таймаут 60с)."
         except (OSError, ValueError) as e:
@@ -170,7 +182,9 @@ class CommandTools:
         schema=InstallPackageSchema,
         risk_level=ToolRiskLevel.DANGEROUS,
     )
-    def install_package(self, package: str, upgrade: bool = False, user_install: bool = False) -> str:
+    def install_package(
+        self, package: str, upgrade: bool = False, user_install: bool = False
+    ) -> str:
         """Устанавливает или обновляет Python-пакет через uv."""
         try:
             args = ["uv", "pip", "install"]

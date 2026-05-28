@@ -2,6 +2,7 @@
 Модуль аудита действий агента.
 Логирование всех вызовов инструментов с детальной информацией.
 """
+
 import json
 import time
 from dataclasses import dataclass, asdict
@@ -15,6 +16,7 @@ from vad_code.infrastructure.logger import log
 @dataclass
 class AuditRecord:
     """Запись об одном действии агента."""
+
     timestamp: str
     tool_name: str
     arguments: dict
@@ -36,7 +38,7 @@ class AuditRecord:
 class AuditLogger:
     """
     Управляет журналом аудита действий агента.
-    
+
     Хранит историю вызовов инструментов с метаданными:
     - Время вызова
     - Имя инструмента
@@ -55,11 +57,11 @@ class AuditLogger:
     def start_call(self, tool_name: str, arguments: dict) -> str:
         """
         Регистрирует начало вызова инструмента.
-        
+
         Args:
             tool_name: Имя вызываемого инструмента.
             arguments: Аргументы вызова.
-            
+
         Returns:
             Уникальный ID вызова.
         """
@@ -73,17 +75,17 @@ class AuditLogger:
         call_id: str,
         result: str,
         success: bool,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ) -> AuditRecord:
         """
         Регистрирует завершение вызова инструмента.
-        
+
         Args:
             call_id: ID вызова (из start_call).
             result: Результат выполнения.
             success: Успешно ли выполнено.
             error_message: Сообщение об ошибке (если есть).
-            
+
         Returns:
             Запись аудита.
         """
@@ -100,7 +102,7 @@ class AuditLogger:
             result=result[:500] if result else "",  # Обрезаем длинные результаты
             success=success,
             duration_ms=round(duration_ms, 2),
-            error_message=error_message
+            error_message=error_message,
         )
 
         self.records.append(record)
@@ -117,7 +119,7 @@ class AuditLogger:
             "📝 Audit: %s %s (%.2fms)",
             "✅" if success else "❌",
             tool_name,
-            duration_ms
+            duration_ms,
         )
 
         return record
@@ -137,16 +139,16 @@ class AuditLogger:
         self,
         limit: int = 50,
         tool_name: Optional[str] = None,
-        success_only: Optional[bool] = None
+        success_only: Optional[bool] = None,
     ) -> list[AuditRecord]:
         """
         Возвращает записи аудита с фильтрацией.
-        
+
         Args:
             limit: Максимальное количество записей.
             tool_name: Фильтр по имени инструмента.
             success_only: Фильтр по успешности.
-            
+
         Returns:
             Список записей.
         """
@@ -163,7 +165,7 @@ class AuditLogger:
     def get_stats(self) -> dict:
         """
         Возвращает статистику по вызовам инструментов.
-        
+
         Returns:
             Словарь со статистикой.
         """
@@ -173,7 +175,7 @@ class AuditLogger:
                 "successful_calls": 0,
                 "failed_calls": 0,
                 "avg_duration_ms": 0,
-                "tools_used": {}
+                "tools_used": {},
             }
 
         total = len(self.records)
@@ -189,7 +191,7 @@ class AuditLogger:
                     "count": 0,
                     "success": 0,
                     "failed": 0,
-                    "total_duration_ms": 0
+                    "total_duration_ms": 0,
                 }
             stats = tools_stats[record.tool_name]
             stats["count"] += 1
@@ -201,14 +203,16 @@ class AuditLogger:
 
         # Вычисляем среднее время для каждого инструмента
         for tool, stats in tools_stats.items():
-            stats["avg_duration_ms"] = round(stats["total_duration_ms"] / stats["count"], 2)
+            stats["avg_duration_ms"] = round(
+                stats["total_duration_ms"] / stats["count"], 2
+            )
 
         return {
             "total_calls": total,
             "successful_calls": successful,
             "failed_calls": failed,
             "avg_duration_ms": round(avg_duration, 2),
-            "tools_used": tools_stats
+            "tools_used": tools_stats,
         }
 
     def clear(self) -> None:
@@ -219,10 +223,10 @@ class AuditLogger:
     def format_records(self, records: list[AuditRecord]) -> str:
         """
         Форматирует записи для отображения.
-        
+
         Args:
             records: Список записей.
-            
+
         Returns:
             Форматированная строка.
         """

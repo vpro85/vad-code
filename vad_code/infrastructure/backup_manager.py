@@ -1,6 +1,7 @@
 """
 Модуль управления бэкапами и историей изменений для системы Undo/Redo.
 """
+
 import shutil
 from pathlib import Path
 from typing import Optional
@@ -32,19 +33,21 @@ class BackupManager:
         self.redo_stack: list[ChangeRecord] = []
         self._max_undo_steps = 20  # Лимит истории
 
-    def create_backup(self, file_path: str, operation: str = "write") -> Optional[ChangeRecord]:
+    def create_backup(
+        self, file_path: str, operation: str = "write"
+    ) -> Optional[ChangeRecord]:
         """
         Создает бэкап файла перед изменением.
-        
+
         Args:
             file_path: Путь к файлу, который будет изменен.
             operation: Тип операции (write, delete, move и т.д.).
-            
+
         Returns:
             ChangeRecord если бэкап создан, иначе None.
         """
         target = Path(file_path)
-        
+
         # Если файл не существует (например, перед удалением или созданием нового), бэкап не нужен
         if not target.exists():
             return None
@@ -52,46 +55,46 @@ class BackupManager:
         try:
             # Создаем директорию для бэкапов, если нет
             self.backup_dir.mkdir(parents=True, exist_ok=True)
-            
+
             # Генерируем имя файла бэкапа
             backup_name = f"{target.name}.bak_{id(self)}_{len(self.undo_stack)}"
             backup_path = self.backup_dir / backup_name
-            
+
             # Копируем файл, исключая служебные директории
             if target.is_dir():
                 shutil.copytree(
-                    target, 
-                    backup_path, 
+                    target,
+                    backup_path,
                     ignore=shutil.ignore_patterns(
-                        '.vad_backups', 
-                        '.git', 
-                        '__pycache__', 
-                        'htmlcov', 
-                        '.pytest_cache',
-                        'node_modules',
-                        '.venv',
-                        'venv',
-                        'env'
-                    )
+                        ".vad_backups",
+                        ".git",
+                        "__pycache__",
+                        "htmlcov",
+                        ".pytest_cache",
+                        "node_modules",
+                        ".venv",
+                        "venv",
+                        "env",
+                    ),
                 )
             else:
                 shutil.copy2(target, backup_path)
-            
+
             record = ChangeRecord(
                 file_path=str(target.resolve()),
                 backup_path=str(backup_path.resolve()),
-                operation=operation
+                operation=operation,
             )
-            
+
             self.undo_stack.append(record)
-            
+
             # Ограничиваем размер стека
             if len(self.undo_stack) > self._max_undo_steps:
                 self.undo_stack.pop(0)
-                
+
             log.debug("📦 Backup created: %s -> %s", target, backup_path)
             return record
-            
+
         except Exception as e:
             log.error("❌ Failed to create backup for %s: %s", target, e)
             return None
@@ -99,7 +102,7 @@ class BackupManager:
     def undo(self) -> Optional[str]:
         """
         Отменяет последнее изменение.
-        
+
         Returns:
             Сообщение о результате операции.
         """
@@ -114,27 +117,27 @@ class BackupManager:
             # Сначала создаем бэкап ТЕКУЩЕГО состояния для Redo (до восстановления)
             redo_backup_name = f"{target.name}.redo_{len(self.redo_stack)}"
             redo_backup_path = self.backup_dir / redo_backup_name
-            
+
             if target.exists():
                 if target.is_dir():
                     shutil.copytree(
-                        target, 
-                        redo_backup_path, 
+                        target,
+                        redo_backup_path,
                         ignore=shutil.ignore_patterns(
-                            '.vad_backups', 
-                            '.git', 
-                            '__pycache__', 
-                            'htmlcov', 
-                            '.pytest_cache',
-                            'node_modules',
-                            '.venv',
-                            'venv',
-                            'env'
-                        )
+                            ".vad_backups",
+                            ".git",
+                            "__pycache__",
+                            "htmlcov",
+                            ".pytest_cache",
+                            "node_modules",
+                            ".venv",
+                            "venv",
+                            "env",
+                        ),
                     )
                 else:
                     shutil.copy2(target, redo_backup_path)
-            
+
             # Теперь восстанавливаем файл из бэкапа
             if not target.exists():
                 # Файл был удален
@@ -156,7 +159,7 @@ class BackupManager:
             redo_record = ChangeRecord(
                 file_path=record.file_path,
                 backup_path=str(redo_backup_path.resolve()),
-                operation="redo"
+                operation="redo",
             )
             self.redo_stack.append(redo_record)
 
@@ -171,7 +174,7 @@ class BackupManager:
     def redo(self) -> Optional[str]:
         """
         Повторяет отмененное изменение.
-        
+
         Returns:
             Сообщение о результате операции.
         """
@@ -189,17 +192,17 @@ class BackupManager:
                     shutil.rmtree(target)
                 else:
                     target.unlink()
-            
+
             if backup.is_dir():
                 shutil.copytree(backup, target)
             else:
                 shutil.copy2(backup, target)
-            
+
             log.info("🔁 Redo applied: %s", target)
-            
+
             # Возвращаем в Undo стек
             self.undo_stack.append(record)
-            
+
             return f"✅ Повторено: изменение для {target.name}"
 
         except Exception as e:
@@ -213,7 +216,7 @@ class BackupManager:
             {
                 "file": rec.file_path,
                 "operation": rec.operation,
-                "backup": rec.backup_path
+                "backup": rec.backup_path,
             }
             for rec in self.undo_stack
         ]

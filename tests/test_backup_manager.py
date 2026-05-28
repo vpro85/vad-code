@@ -1,4 +1,5 @@
 """Тесты для модуля backup_manager."""
+
 import os
 import shutil
 import tempfile
