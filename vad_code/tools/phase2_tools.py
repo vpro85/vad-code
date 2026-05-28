@@ -40,15 +40,15 @@ class Phase2Tools:
     # =========================================================================
 
     @register_tool(
-        "удаляет Python-пакет через pip",
+        "удаляет Python-пакет через uv",
         schema=UninstallPackageSchema,
         risk_level=ToolRiskLevel.DANGEROUS,
     )
     def uninstall_package(self, package: str) -> str:
-        """Удаляет Python-пакет."""
+        """Удаляет Python-пакет через uv."""
         try:
             result = subprocess.run(
-                ["pip", "uninstall", "-y", package],
+                ["uv", "pip", "uninstall", "-y", package],
                 capture_output=True,
                 text=True,
                 timeout=120,
@@ -77,9 +77,9 @@ class Phase2Tools:
         risk_level=ToolRiskLevel.READ,
     )
     def list_packages(self, filter_pattern: str = "", show_upgradable: bool = False) -> str:
-        """Показывает список установленных пакетов."""
+        """Показывает список установленных пакетов через uv."""
         try:
-            args = ["pip", "list"]
+            args = ["uv", "pip", "list"]
             if show_upgradable:
                 args.append("--outdated")
 
@@ -120,14 +120,14 @@ class Phase2Tools:
             return f"Ошибка при получении списка пакетов: {e}"
 
     @register_tool(
-        "обновляет Python-пакеты через pip",
+        "обновляет Python-пакеты через uv",
         schema=UpdatePackageSchema,
         risk_level=ToolRiskLevel.DANGEROUS,
     )
     def update_package(self, package: str = "", user_install: bool = False) -> str:
-        """Обновляет один или все Python-пакеты."""
+        """Обновляет один или все Python-пакеты через uv."""
         try:
-            args = ["pip", "install", "--upgrade"]
+            args = ["uv", "pip", "install", "--upgrade"]
             if user_install:
                 args.append("--user")
 
@@ -138,7 +138,7 @@ class Phase2Tools:
                 args.append("--upgrade")
                 # Получаем список устаревших
                 outdated_result = subprocess.run(
-                    ["pip", "list", "--outdated", "--format=json"],
+                    ["uv", "pip", "list", "--outdated", "--format=json"],
                     capture_output=True,
                     text=True,
                     timeout=60,
@@ -232,7 +232,7 @@ class Phase2Tools:
             return output
 
         except FileNotFoundError:
-            return f"Ошибка: линтер '{tool}' не установлен. Установите его через pip."
+            return f"Ошибка: линтер '{tool}' не установлен. Установите его через uv."
         except subprocess.TimeoutExpired:
             return "Ошибка: время выполнения линтера истекло (таймаут 120с)."
         except (OSError, ValueError) as e:

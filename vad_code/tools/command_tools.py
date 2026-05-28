@@ -159,21 +159,21 @@ class CommandTools:
             return output if output.strip() else f"Форматирование завершено ({tool})."
 
         except FileNotFoundError:
-            return f"Ошибка: инструмент '{tool}' не установлен. Установите его через pip."
+            return f"Ошибка: инструмент '{tool}' не установлен. Установите его через uv."
         except subprocess.TimeoutExpired:
             return "Ошибка: время форматирования истекло (таймаут 60с)."
         except (OSError, ValueError) as e:
             return f"Ошибка при форматировании кода: {e}"
 
     @register_tool(
-        "устанавливает Python-пакет через pip",
+        "устанавливает Python-пакет через uv",
         schema=InstallPackageSchema,
         risk_level=ToolRiskLevel.DANGEROUS,
     )
     def install_package(self, package: str, upgrade: bool = False, user_install: bool = False) -> str:
-        """Устанавливает или обновляет Python-пакет."""
+        """Устанавливает или обновляет Python-пакет через uv."""
         try:
-            args = ["pip", "install"]
+            args = ["uv", "pip", "install"]
             if upgrade:
                 args.append("--upgrade")
             if user_install:
