@@ -156,6 +156,94 @@ class InstallPackageSchema(BaseModel):
     user_install: bool = Field(False, description="Установить в пользовательскую директорию")
 
 
+class UninstallPackageSchema(BaseModel):
+    """Схема для удаления Python-пакетов."""
+    package: str = Field(..., description="Имя пакета для удаления (например, 'requests')")
+
+
+class ListPackagesSchema(BaseModel):
+    """Схема для списка установленных пакетов."""
+    filter_pattern: str = Field("", description="Фильтр по имени пакета")
+    show_upgradable: bool = Field(False, description="Показать только пакеты, доступные для обновления")
+
+
+class UpdatePackageSchema(BaseModel):
+    """Схема для обновления Python-пакетов."""
+    package: str = Field("", description="Имя пакета. Пустая строка = обновить все")
+    user_install: bool = Field(False, description="Обновить в пользовательской директории")
+
+
+class RunLinterSchema(BaseModel):
+    """Схема для запуска линтеров."""
+    tool: str = Field("pylint", description="Инструмент: pylint, flake8, mypy")
+    path: str = Field(".", description="Путь к файлу или директории")
+    args: str = Field("", description="Дополнительные аргументы")
+
+
+class SearchAndReplaceSchema(BaseModel):
+    """Схема для массовой замены."""
+    search_pattern: str = Field(..., description="Шаблон для поиска (regex)")
+    replace_with: str = Field(..., description="Текст замены")
+    path: str = Field(".", description="Директория для поиска")
+    file_glob: str = Field("*.py", description="Маска файлов")
+    dry_run: bool = Field(True, description="Только показать что будет заменено")
+
+
+class FindDuplicatesSchema(BaseModel):
+    """Схема для поиска дублирующегося кода."""
+    path: str = Field(".", description="Директория для анализа")
+    min_lines: int = Field(5, description="Минимальное кол-во строк", ge=2, le=50)
+    file_glob: str = Field("*.py", description="Маска файлов")
+
+
+class AnalyzeComplexitySchema(BaseModel):
+    """Схема для анализа сложности кода."""
+    path: str = Field(".", description="Путь к файлу или директории")
+    threshold: int = Field(10, description="Порог сложности", ge=1, le=50)
+
+
+class FindCodeSmellsSchema(BaseModel):
+    """Схема для поиска запахов кода."""
+    path: str = Field(".", description="Путь к файлу или директории")
+    file_glob: str = Field("*.py", description="Маска файлов")
+
+
+class GenerateDocstringSchema(BaseModel):
+    """Схема для генерации docstring."""
+    path: str = Field(..., description="Путь к файлу")
+    function_name: str = Field("", description="Имя функции. Пусто = для всех")
+    style: str = Field("google", description="Стиль: google, numpy, sphinx")
+
+
+class AnalyzeDependenciesSchema(BaseModel):
+    """Схема для анализа зависимостей."""
+    path: str = Field(".", description="Путь к файлу или директории")
+    file_glob: str = Field("*.py", description="Маска файлов")
+
+
+class FindUnusedImportsSchema(BaseModel):
+    """Схема для поиска неиспользуемых импортов."""
+    path: str = Field(".", description="Путь к файлу или директории")
+    file_glob: str = Field("*.py", description="Маска файлов")
+
+
+class ListProcessesSchema(BaseModel):
+    """Схема для списка процессов."""
+    filter_pattern: str = Field("", description="Фильтр по имени процесса")
+
+
+class KillProcessSchema(BaseModel):
+    """Схема для завершения процесса."""
+    pid: int = Field(..., description="PID процесса")
+    force: bool = Field(False, description="Принудительное завершение")
+
+
+class RunBackgroundTaskSchema(BaseModel):
+    """Схема для запуска фоновой задачи."""
+    command: str = Field(..., description="Команда для выполнения")
+    timeout: int = Field(300, description="Таймаут в секундах", ge=10, le=3600)
+
+
 # --- Проблемные случаи ---
 
 class ReportBadCaseSchema(BaseModel):

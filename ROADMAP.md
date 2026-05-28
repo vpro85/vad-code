@@ -74,40 +74,40 @@
 **Срок: 3-4 недели**
 
 #### 2.1 Новые инструменты
-- [ ] **Управление пакетами**
-  - `install_package` - установка Python-пакетов
-  - `uninstall_package` - удаление пакетов
-  - `list_packages` - список установленных пакетов
-  - `update_package` - обновление пакетов
+- [x] **Управление пакетами**
+  - [x] `install_package` - установка Python-пакетов
+  - [x] `uninstall_package` - удаление пакетов
+  - [x] `list_packages` - список установленных пакетов
+  - [x] `update_package` - обновление пакетов
 
-- [ ] **Запуск тестов и линтеров**
-  - `run_tests` - запуск pytest с фильтрацией
-  - `run_linter` - запуск pylint/flake8/mypy
-  - `format_code` - автоформатирование (black, isort)
+- [x] **Запуск тестов и линтеров**
+  - [x] `run_tests` - запуск pytest с фильтрацией
+  - [x] `run_linter` - запуск pylint/flake8/mypy
+  - [x] `format_code` - автоформатирование (black, isort)
 
-- [ ] **Работа с процессами**
-  - `list_processes` - список процессов
-  - `kill_process` - завершение процесса
-  - `run_background_task` - фоновые задачи
+- [x] **Работа с процессами**
+  - [x] `list_processes` - список процессов
+  - [x] `kill_process` - завершение процесса
+  - [x] `run_background_task` - фоновые задачи
 
-- [ ] **Поиск и замена**
-  - `search_and_replace` - массовая замена по шаблону
-  - `find_duplicates` - поиск дублирующегося кода
+- [x] **Поиск и замена**
+  - [x] `search_and_replace` - массовая замена по шаблону
+  - [x] `find_duplicates` - поиск дублирующегося кода
 
 #### 2.2 Улучшение работы с кодом
-- [ ] **Анализ кода**
-  - `analyze_complexity` - анализ сложности функций
-  - `find_code_smells` - поиск запахов кода
-  - `suggest_refactoring` - предложения по рефакторингу
+- [x] **Анализ кода**
+  - [x] `analyze_complexity` - анализ сложности функций
+  - [x] `find_code_smells` - поиск запахов кода
+  - [ ] `suggest_refactoring` - предложения по рефакторингу
 
-- [ ] **Генерация документации**
-  - `generate_docstring` - создание docstrings
-  - `update_readme` - обновление документации
-  - `generate_changelog` - создание changelog
+- [x] **Генерация документации**
+  - [x] `generate_docstring` - создание docstrings
+  - [ ] `update_readme` - обновление документации
+  - [ ] `generate_changelog` - создание changelog
 
-- [ ] **Работа с зависимостями**
-  - `analyze_dependencies` - анализ графа зависимостей
-  - `find_unused_imports` - поиск неиспользуемых импортов
+- [x] **Работа с зависимостями**
+  - [x] `analyze_dependencies` - анализ графа зависимостей
+  - [x] `find_unused_imports` - поиск неиспользуемых импортов
 
 ---
 
