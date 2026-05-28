@@ -1,7 +1,7 @@
 """Тесты для ToolExecutor — покрытие основных путей выполнения."""
-import pytest
 import json5
-from unittest.mock import AsyncMock, MagicMock
+import pytest
+
 from vad_code.core.executor import ToolExecutor
 
 

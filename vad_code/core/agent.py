@@ -59,14 +59,14 @@ class Agent:
             f"{i + 1}. {name}(...) - {info['description']}"
             for i, (name, info) in enumerate(TOOL_REGISTRY.items())
         )
-        
+
         # Определяем доступные уровни риска
         from vad_code.tools.permissions import permission_manager
         if permission_manager.allowed_levels is None:
             risk_info = "Все уровни разрешены (read, write, dangerous)"
         else:
             risk_info = ", ".join(level.value for level in permission_manager.allowed_levels)
-        
+
         return (
             "Ты - AI-инженер, имеющий доступ к файловой системе в директории: "
             f"{settings.project_root}. "
@@ -131,7 +131,7 @@ class Agent:
         """Возвращает статистику по вызовам инструментов."""
         stats = audit_logger.get_stats()
         lines = [
-            f"📊 Статистика вызовов инструментов:",
+            "📊 Статистика вызовов инструментов:",
             f"  Всего вызовов: {stats['total_calls']}",
             f"  Успешных: {stats['successful_calls']}",
             f"  Ошибок: {stats['failed_calls']}",
@@ -245,8 +245,8 @@ class Agent:
         if len(observation) <= MAX_OBSERVATION_CHARS:
             return observation
         return (
-                observation[:MAX_OBSERVATION_CHARS]
-                + f"\n[... обрезано, всего {len(observation)} символов ...]"
+            observation[:MAX_OBSERVATION_CHARS]
+            + f"\n[... обрезано, всего {len(observation)} символов ...]"
         )
 
     # ------------------------------------------------------------------

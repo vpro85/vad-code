@@ -2,13 +2,11 @@
 Инструменты Фазы 2: Расширение возможностей (v0.5.0).
 """
 import ast
-import os
 import re
 import subprocess
 import hashlib
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, Future
-from typing import Any
 
 from ..infrastructure.file_system import FileSystemService
 from ..infrastructure.command_security import command_validator
@@ -28,9 +26,6 @@ from .schemas import (
     ListProcessesSchema,
     KillProcessSchema,
     RunBackgroundTaskSchema,
-    SuggestRefactoringSchema,
-    UpdateReadmeSchema,
-    GenerateChangelogSchema,
 )
 
 
@@ -239,7 +234,7 @@ class Phase2Tools:
         except FileNotFoundError:
             return f"Ошибка: линтер '{tool}' не установлен. Установите его через pip."
         except subprocess.TimeoutExpired:
-            return f"Ошибка: время выполнения линтера истекло (таймаут 120с)."
+            return "Ошибка: время выполнения линтера истекло (таймаут 120с)."
         except (OSError, ValueError) as e:
             return f"Ошибка при запуске линтера: {e}"
 
@@ -865,8 +860,6 @@ class Phase2Tools:
             args = shlex.split(command)
 
             # Запускаем в отдельном потоке
-            future: Future[str] = Future()
-
             def _run() -> str:
                 try:
                     result = subprocess.run(
@@ -889,7 +882,7 @@ class Phase2Tools:
                     return f"Ошибка: {e}"
 
             thread = ThreadPoolExecutor(max_workers=1)
-            future = thread.submit(_run)
+            _ = thread.submit(_run)
 
             return (
                 f"Фоновая задача запущена: '{command}'\n"
@@ -1026,7 +1019,6 @@ class Phase2Tools:
                             if line.startswith("## ") and section in line:
                                 in_section = True
                                 section_start = i
-                                section_indent = len(line) - len(line.lstrip("#"))
                             elif in_section and line.startswith("## "):
                                 section_end = i
                                 in_section = False
@@ -1107,7 +1099,7 @@ class Phase2Tools:
                     other.append(f"- {message} ({hash_val[:7]})")
 
             # Формирование changelog
-            changelog = f"# Changelog\n\n"
+            changelog = "# Changelog\n\n"
             changelog += f"## [{since_version or 'latest'}] - {commits[0].split('|')[1] if '|' in commits[0] else 'N/A'}\n\n"
 
             if features:

@@ -4,7 +4,6 @@
 """
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 from vad_code.infrastructure.logger import log
 
@@ -145,12 +144,12 @@ class SessionMetrics:
                 key=lambda m: m.call_count,
                 reverse=True
             )
-            for tm in sorted_tools:
+            for tool_metric in sorted_tools:
                 lines.append(
-                    f"  {tm.name}: {tm.call_count} вызовов, "
-                    f"успех {tm.success_rate:.0f}%, "
-                    f"среднее время {tm.avg_execution_time:.2f}с "
-                    f"(min: {tm.min_execution_time:.2f}с, max: {tm.max_execution_time:.2f}с)"
+                    f"  {tool_metric.name}: {tool_metric.call_count} вызовов, "
+                    f"успех {tool_metric.success_rate:.0f}%, "
+                    f"среднее время {tool_metric.avg_execution_time:.2f}с "
+                    f"(min: {tool_metric.min_execution_time:.2f}с, max: {tool_metric.max_execution_time:.2f}с)"
                 )
             lines.append("")
 

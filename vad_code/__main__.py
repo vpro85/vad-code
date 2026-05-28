@@ -97,10 +97,10 @@ async def run(args: argparse.Namespace) -> None:
             elif level_str == "dangerous":
                 allowed_levels.append(ToolRiskLevel.DANGEROUS)
         if not allowed_levels:
-            allowed_levels = None # Если строка пустая, разрешаем всё
-    
+            allowed_levels = None  # Если строка пустая, разрешаем всё
+
     permission_manager.allowed_levels = allowed_levels
-    
+
     log.info("🚀 AI-OS Bridge запущен (v%s).", VERSION)
     log.info("LLM-провайдер: %s", settings.llm_provider)
     log.info("Модель: %s", settings.llm_model)

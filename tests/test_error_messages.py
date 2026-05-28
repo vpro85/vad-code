@@ -1,5 +1,4 @@
 """Тесты для модуля улучшенных сообщений об ошибках."""
-import pytest
 
 from vad_code.infrastructure.error_messages import (
     ErrorMessages,

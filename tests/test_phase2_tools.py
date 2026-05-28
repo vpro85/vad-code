@@ -1,7 +1,4 @@
 """Тесты для инструментов Фазы 2."""
-import os
-import tempfile
-from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -516,4 +513,3 @@ class TestGenerateChangelog:
 
             phase2_tools.generate_changelog(path="CHANGELOG.md", since_version="v1.0.0")
             assert "v1.0.0..HEAD" in str(mock_run.call_args)
-

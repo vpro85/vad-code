@@ -173,7 +173,7 @@ class ToolExecutor:
             # 5.5. Создание бэкапа перед изменением (для WRITE и DANGEROUS)
             tool_meta = self.metadata.get(func_name, {})
             risk_level = tool_meta.get("risk_level", ToolRiskLevel.READ)
-            
+
             if risk_level in (ToolRiskLevel.WRITE, ToolRiskLevel.DANGEROUS):
                 affected_path = self._get_affected_file_path(func_name, final_args)
                 if affected_path:
@@ -192,7 +192,7 @@ class ToolExecutor:
             # 9. Лог успеха и аудит
             log.debug("✅ Success: %s completed in %.2fs.", func_name, execution_time)
             result_str = str(result) if result is not None else "Success"
-            
+
             if call_id:
                 audit_logger.end_call(call_id, result_str, success=True)
 
@@ -210,8 +210,8 @@ class ToolExecutor:
             execution_time = time.time() - start_time
             session_metrics.record_tool_call(func_name, execution_time, success=False)
             log.warning("🚫 Permission Denied: %s", e)
-            allowed = [l.value for l in permission_manager.allowed_levels] if permission_manager.allowed_levels else []
-            
+            allowed = [level.value for level in permission_manager.allowed_levels] if permission_manager.allowed_levels else []
+
             # Получаем risk_level заново, так как проверка могла произойти до его определения
             tool_meta = self.metadata.get(func_name, {})
             risk_level = tool_meta.get("risk_level", ToolRiskLevel.READ)

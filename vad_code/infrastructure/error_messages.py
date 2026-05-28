@@ -2,7 +2,6 @@
 Модуль улучшенных сообщений об ошибках.
 Предоставляет понятные и дружелюбные сообщения с рекомендациями.
 """
-from typing import Optional
 
 
 class ErrorMessages:
@@ -71,7 +70,7 @@ class ErrorMessages:
     def format_error(
         cls,
         error_type: str,
-        **kwargs
+        **kwargs: object
     ) -> str:
         """
         Форматирует сообщение об ошибке с рекомендациями.
@@ -171,7 +170,7 @@ class ErrorMessages:
 error_messages = ErrorMessages()
 
 
-def format_error(error_type: str, **kwargs) -> str:
+def format_error(error_type: str, **kwargs: object) -> str:
     """Удобная функция для форматирования ошибок."""
     return error_messages.format_error(error_type, **kwargs)
 

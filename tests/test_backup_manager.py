@@ -1,12 +1,12 @@
 """Тесты для модуля backup_manager."""
 import os
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
 
 import pytest
 
-from vad_code.infrastructure.backup_manager import BackupManager, ChangeRecord
+from vad_code.infrastructure.backup_manager import BackupManager
 
 
 @pytest.fixture

@@ -2,11 +2,11 @@
 import json
 import os
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from vad_code.infrastructure.bad_cases import BadCaseManager, BadCase, BAD_CASES_FILE
+from vad_code.infrastructure.bad_cases import BadCaseManager, BadCase
 
 
 @pytest.fixture
@@ -125,7 +125,7 @@ class TestBadCaseManager:
             ai_response="test response",
             error_type="parse_error",
         )
-        
+
         # Проверяем, что файл содержит данные
         with open(temp_bad_cases_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -152,7 +152,7 @@ class TestBadCaseManager:
         """Проверяем список случаев."""
         manager.add_case("input1", "response1", "parse_error")
         manager.add_case("input2", "response2", "invalid_json")
-        
+
         cases = manager.list_cases(limit=5)
         assert len(cases) == 2
 
@@ -160,7 +160,7 @@ class TestBadCaseManager:
         """Проверяем фильтрацию по типу ошибки."""
         manager.add_case("input1", "response1", "parse_error")
         manager.add_case("input2", "response2", "invalid_json")
-        
+
         cases = manager.list_cases(error_type="parse_error")
         assert len(cases) == 1
         assert cases[0].error_type == "parse_error"
@@ -170,7 +170,7 @@ class TestBadCaseManager:
         case_id1 = manager.add_case("input1", "response1", "parse_error")
         case_id2 = manager.add_case("input2", "response2", "invalid_json")
         manager.mark_resolved(case_id1, "Fixed")
-        
+
         cases = manager.list_cases(unresolved_only=True)
         assert len(cases) == 1
         assert cases[0].id == case_id2
@@ -179,7 +179,7 @@ class TestBadCaseManager:
         """Проверяем отметку случая как решенного."""
         case_id = manager.add_case("input1", "response1", "parse_error")
         success = manager.mark_resolved(case_id, "Fixed the issue")
-        
+
         assert success is True
         case = manager.get_case(case_id)
         assert case.resolved is True
@@ -203,7 +203,7 @@ class TestBadCaseManager:
         manager.add_case("input2", "response2", "invalid_json")
         case_id = manager.add_case("input3", "response3", "parse_error")
         manager.mark_resolved(case_id)
-        
+
         stats = manager.get_stats()
         assert stats["total"] == 3
         assert stats["resolved"] == 1
@@ -215,7 +215,7 @@ class TestBadCaseManager:
         """Проверяем обработку поврежденного файла."""
         with open(temp_bad_cases_file, 'w', encoding='utf-8') as f:
             f.write("invalid json")
-        
+
         with patch('vad_code.infrastructure.bad_cases.BAD_CASES_FILE', temp_bad_cases_file):
             mgr = BadCaseManager()
             assert len(mgr.cases) == 0  # Должен создать пустой список

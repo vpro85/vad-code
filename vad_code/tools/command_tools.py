@@ -161,7 +161,7 @@ class CommandTools:
         except FileNotFoundError:
             return f"Ошибка: инструмент '{tool}' не установлен. Установите его через pip."
         except subprocess.TimeoutExpired:
-            return f"Ошибка: время форматирования истекло (таймаут 60с)."
+            return "Ошибка: время форматирования истекло (таймаут 60с)."
         except (OSError, ValueError) as e:
             return f"Ошибка при форматировании кода: {e}"
 

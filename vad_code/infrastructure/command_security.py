@@ -84,10 +84,10 @@ class CommandValidator:
     """
 
     def __init__(
-        self,
-        allowed_commands: Optional[set] = None,
-        max_timeout: int = 300,  # 5 минут максимум
-        max_output_size: int = 1_000_000  # 1MB
+            self,
+            allowed_commands: Optional[set] = None,
+            max_timeout: int = 300,  # 5 минут максимум
+            max_output_size: int = 1_000_000  # 1MB
     ):
         self.allowed_commands = allowed_commands or ALLOWED_COMMANDS
         self.max_timeout = max_timeout

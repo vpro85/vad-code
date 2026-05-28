@@ -1,8 +1,6 @@
 """Тесты для модуля audit_logger."""
 import json
 import time
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -129,7 +127,7 @@ def test_save_to_file(audit_logger_with_file):
     audit_logger_with_file.end_call(call_id, "content", success=True)
 
     assert audit_logger_with_file.audit_file.exists()
-    
+
     # Проверяем содержимое файла
     with open(audit_logger_with_file.audit_file, "r") as f:
         line = f.readline()

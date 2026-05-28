@@ -4,7 +4,7 @@
 """
 import json
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -47,7 +47,7 @@ class AuditLogger:
     """
 
     def __init__(self, audit_file: Optional[str] = None, max_records: int = 1000):
-        self.audit_file = Path(audit_file) if audit_file else None
+        self.audit_file: Optional[Path] = Path(audit_file) if audit_file else None
         self.records: list[AuditRecord] = []
         self.max_records = max_records
         self._active_calls: dict[str, float] = {}  # tool_call_id -> start_time
@@ -124,6 +124,8 @@ class AuditLogger:
 
     def _save_to_file(self, record: AuditRecord) -> None:
         """Сохраняет запись в файл аудита."""
+        if self.audit_file is None:
+            return
         try:
             self.audit_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.audit_file, "a", encoding="utf-8") as f:
