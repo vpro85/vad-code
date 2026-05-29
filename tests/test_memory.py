@@ -10,7 +10,9 @@ def mock_tokenizer():
     tokenizer = MagicMock(spec=Tokenizer)
     # Default behavior: 1 token per character for simplicity in tests
     tokenizer.count_tokens.side_effect = lambda x: len(str(x))
-    tokenizer.count_messages_tokens.side_effect = lambda msgs: sum(len(m['role']) + len(m['content']) for m in msgs)
+    tokenizer.count_messages_tokens.side_effect = lambda msgs: sum(
+        len(m["role"]) + len(m["content"]) for m in msgs
+    )
     return tokenizer
 
 
@@ -41,7 +43,9 @@ def test_reset(memory):
 def test_trim_by_message_count(memory, monkeypatch):
     # Set a small limit for testing
     monkeypatch.setattr(settings, "max_history_messages", 3)
-    monkeypatch.setattr(settings, "max_context_tokens", 10000)  # High token limit to isolate message count test
+    monkeypatch.setattr(
+        settings, "max_context_tokens", 10000
+    )  # High token limit to isolate message count test
 
     # Add 5 messages
     for i in range(5):

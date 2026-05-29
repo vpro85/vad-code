@@ -1,5 +1,7 @@
 """Модуль агента — управляет историей, системным промптом и циклом вызовов инструментов"""
+
 import re
+from typing import Any
 
 import json5
 
@@ -8,8 +10,11 @@ from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_providers import BaseLLMProvider
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
+from vad_code.infrastructure.bad_cases import bad_case_manager
+from vad_code.infrastructure.backup_manager import backup_manager
+from vad_code.infrastructure.audit_logger import audit_logger
 from vad_code.core.memory import ConversationMemory
-from vad_code.tools.file_tools import TOOL_REGISTRY
+from vad_code.tools import TOOL_REGISTRY
 
 MAX_OBSERVATION_CHARS = 30_000
 
@@ -39,6 +44,14 @@ class Agent:
         self.system_prompt = self._build_system_prompt()
         self.memory = ConversationMemory(tokenizer, self.system_prompt)
 
+        # Статистика сессии
+        self.session_stats = {
+            "tool_calls": 0,
+            "total_tokens": 0,
+            "errors": 0,
+            "iterations": 0,
+        }
+
     # ------------------------------------------------------------------
     # Системный промпт
     # ------------------------------------------------------------------
@@ -48,25 +61,50 @@ class Agent:
             f"{i + 1}. {name}(...) - {info['description']}"
             for i, (name, info) in enumerate(TOOL_REGISTRY.items())
         )
+
+        # Определяем доступные уровни риска
+        from vad_code.tools.permissions import permission_manager
+
+        if permission_manager.allowed_levels is None:
+            risk_info = "Все уровни разрешены (read, write, dangerous)"
+        else:
+            risk_info = ", ".join(
+                level.value for level in permission_manager.allowed_levels
+            )
+
         return (
             "Ты - AI-инженер, имеющий доступ к файловой системе в директории: "
             f"{settings.project_root}. "
             "Твоя задача - помогать пользователю анализировать и изменять код.\n\n"
             "ДОСТУПНЫЕ ИНСТРУМЕНТЫ:\n"
             f"{tools_text}\n\n"
+            "УРОВНИ РИСКА ИНСТРУМЕНТОВ:\n"
+            "- READ: чтение файлов, просмотр структуры, git-лог (безопасно)\n"
+            "- WRITE: запись файлов, создание директорий, git-коммиты (изменяет файлы)\n"
+            "- DANGEROUS: удаление файлов, выполнение команд (требует осторожности)\n"
+            f"Текущие разрешения: {risk_info}\n\n"
             "ПРОТОКОЛ ВЗАИМОДЕЙСТВИЯ:\n"
-            "- Вызов инструмента — СТРОГО отдельный блок JSON, "
+            "1. Вызов инструмента — СТРОГО отдельный блок JSON, "
             "без другого текста на этих строках:\n"
             "```json\n"
             "{\n"
             '  "tool": "имя_функции",\n'
             '  "arguments": {"аргумент1": "значение1"}\n'
             "}\n"
-            "```\n"
-            "- Не используй ```json в примерах или объяснениях — только для реального вызова.\n"
-            "- После каждого вызова ты получишь: OBSERVATION: [результат]\n"
-            "- Когда информации достаточно — напиши финальный ответ без блока ```json.\n"
-            "- Никогда не выдумывай содержимое файлов, используй только read_file."
+            "```\n\n"
+            "2. Не используй ```json в примерах или объяснениях — только для реального вызова.\n\n"
+            "3. После каждого вызова ты получишь: OBSERVATION: [результат]\n\n"
+            "4. Когда информации достаточно — напиши финальный ответ без блока ```json.\n\n"
+            "5. Никогда не выдумывай содержимое файлов, используй только read_file.\n\n"
+            "ПРАВИЛА РАБОТЫ:\n"
+            "- Перед изменением файла всегда читай его содержимое через read_file\n"
+            "- Для больших файлов используй read_file_lines вместо read_file\n"
+            "- Перед удалением файла подтверди путь через list_files или list_tree\n"
+            "- Используй search_in_files вместо последовательных read_file для поиска\n"
+            "- Для изучения структуры проекта используй list_tree\n"
+            "- Git-операции выполняй последовательно: status -> diff -> add -> commit\n"
+            "- Если получил ошибку доступа, не пытайся выполнить запрещенный инструмент\n"
+            "- Всегда проверяй результат выполнения инструмента перед следующим шагом"
         )
 
     # ------------------------------------------------------------------
@@ -76,6 +114,42 @@ class Agent:
     def reset_history(self) -> None:
         """Очищает историю сообщений через объект памяти."""
         self.memory.reset()
+
+    def undo(self) -> str:
+        """Отменяет последнее изменение файла."""
+        return backup_manager.undo() or "Нет изменений для отмены."
+
+    def redo(self) -> str:
+        """Повторяет отмененное изменение."""
+        return backup_manager.redo() or "Нет изменений для повтора."
+
+    def get_change_history(self) -> list[dict[str, Any]]:
+        """Возвращает историю изменений файлов."""
+        return backup_manager.get_history()
+
+    def get_audit_records(self, limit: int = 50) -> str:
+        """Возвращает журнал аудита действий."""
+        records = audit_logger.get_records(limit=limit)
+        return audit_logger.format_records(records)
+
+    def get_audit_stats(self) -> str:
+        """Возвращает статистику по вызовам инструментов."""
+        stats = audit_logger.get_stats()
+        lines = [
+            "📊 Статистика вызовов инструментов:",
+            f"  Всего вызовов: {stats['total_calls']}",
+            f"  Успешных: {stats['successful_calls']}",
+            f"  Ошибок: {stats['failed_calls']}",
+            f"  Среднее время: {stats['avg_duration_ms']}ms",
+        ]
+        if stats["tools_used"]:
+            lines.append("\n  По инструментам:")
+            for tool, tool_stats in stats["tools_used"].items():
+                lines.append(
+                    f"    - {tool}: {tool_stats['count']} вызовов, "
+                    f"{tool_stats['avg_duration_ms']}ms среднее"
+                )
+        return "\n".join(lines)
 
     # ------------------------------------------------------------------
     # Утилиты
@@ -102,13 +176,48 @@ class Agent:
                     candidates.append(content)
         # 3. Пытаемся найти JSON-объект в тексте
         if not candidates:
-            start = ai_response.find('{')
-            end = ai_response.rfind('}')
+            start = ai_response.find("{")
+            end = ai_response.rfind("}")
             if start != -1 and end != -1 and start < end:
-                candidate = ai_response[start:end + 1]
+                candidate = ai_response[start : end + 1]
                 if Agent._try_parse_json(candidate):
                     candidates.append(candidate)
         return candidates[-1] if candidates else None
+
+    @staticmethod
+    def _balance_braces(text: str) -> str:
+        """Балансирует фигурные и квадратные скобки в тексте."""
+        # Считаем баланс скобок, игнорируя те, что внутри строк
+        in_string = False
+        escape_next = False
+        brace_count = 0  # для {}
+        bracket_count = 0  # для []
+        for char in text:
+            if escape_next:
+                escape_next = False
+                continue
+            if char == "\\":
+                escape_next = True
+                continue
+            if char == '"' and not escape_next:
+                in_string = not in_string
+                continue
+            if not in_string:
+                if char == "{":
+                    brace_count += 1
+                elif char == "}":
+                    brace_count -= 1
+                elif char == "[":
+                    bracket_count += 1
+                elif char == "]":
+                    bracket_count -= 1
+        # Добавляем недостающие закрывающие скобки
+        result = text
+        if brace_count > 0:
+            result += "}" * brace_count
+        if bracket_count > 0:
+            result += "]" * bracket_count
+        return result
 
     @staticmethod
     def _try_parse_json(text: str) -> bool:
@@ -118,9 +227,11 @@ class Agent:
             return isinstance(data, dict) and "tool" in data
         except ValueError:
             # Пытаемся исправить распространенные ошибки JSON от LLM
-            # Например, неэкранированные переносы строк внутри строк
+            # 1. Неэкранированные переносы строк внутри строк
+            # 2. Незакрытые фигурные/квадратные скобки
             try:
-                fixed_text = re.sub(r'(?<!\\)\n', '\\n', text)
+                fixed_text = re.sub(r"(?<!\\)\n", "\\n", text)
+                fixed_text = Agent._balance_braces(fixed_text)
                 data = json5.loads(fixed_text)
                 return isinstance(data, dict) and "tool" in data
             except ValueError:
@@ -139,19 +250,37 @@ class Agent:
         if len(observation) <= MAX_OBSERVATION_CHARS:
             return observation
         return (
-                observation[:MAX_OBSERVATION_CHARS]
-                + f"\n[... обрезано, всего {len(observation)} символов ...]"
+            observation[:MAX_OBSERVATION_CHARS]
+            + f"\n[... обрезано, всего {len(observation)} символов ...]"
         )
 
     # ------------------------------------------------------------------
     # Основной цикл
     # ------------------------------------------------------------------
 
+    def print_stats(self) -> None:
+        """Выводит статистику текущей сессии."""
+        stats = self.session_stats
+        log.info(
+            "\n📊 Статистика сессии:\n"
+            "  Вызовов инструментов: %d\n"
+            "  Всего токенов: %d\n"
+            "  Ошибок: %d\n"
+            "  Итераций: %d\n"
+            "  Сообщений в памяти: %d\n",
+            stats["tool_calls"],
+            stats["total_tokens"],
+            stats["errors"],
+            stats["iterations"],
+            len(self.memory.history),
+        )
+
     async def handle(self, user_input: str) -> None:
         """Обрабатывает один запрос пользователя"""
         self.memory.add_message("user", user_input)
 
         for i in range(settings.max_iterations):
+            self.session_stats["iterations"] += 1
             self.memory.trim()
             ai_response = await self.llm_client.complete_with_retry(
                 self.memory.get_messages(),
@@ -160,18 +289,37 @@ class Agent:
             )
             self.memory.add_message("assistant", ai_response)
 
+            # Подсчет токенов
+            current_tokens = self.tokenizer.count_tokens(ai_response)
+            self.session_stats["total_tokens"] += current_tokens
+
             call_json = self._extract_call(ai_response)
 
             if call_json:
+                self.session_stats["tool_calls"] += 1
                 observation = await self.executor.execute(call_json)
 
                 if observation is None:
                     # Невалидный вызов — считаем финальным ответом
+                    self.session_stats["errors"] += 1
+                    # Сохраняем проблемный случай
+                    bad_case_manager.add_case(
+                        user_input=user_input,
+                        ai_response=ai_response,
+                        error_type="invalid_call",
+                        error_details="Вызов инструмента распознан, но не выполнен",
+                        context={"iteration": i + 1},
+                    )
                     log.info("\n🤖 AI: %s\n", ai_response)
                     return
 
                 tool_name = self._get_tool_name(call_json)
-                log.info("🤖 AI вызывает [%s]... (%d/%d)", tool_name, i + 1, settings.max_iterations)
+                log.info(
+                    "🤖 AI вызывает [%s]... (%d/%d)",
+                    tool_name,
+                    i + 1,
+                    settings.max_iterations,
+                )
                 log.info(
                     "📝 Результат: %s%s",
                     observation[:120],
@@ -183,6 +331,8 @@ class Agent:
                     "user", f"OBSERVATION: {self._truncate_observation(observation)}"
                 )
             else:
+                # AI не сгенерировал вызов инструмента - это потенциально проблемный случай
+                # если пользователь ожидал действия
                 log.info("\n🤖 AI: %s\n", ai_response)
                 return
 

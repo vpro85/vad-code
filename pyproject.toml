@@ -1,6 +1,6 @@
 [project]
 name = "vad-code"
-version = "0.1.0"
+version = "0.4.0"
 requires-python = ">=3.14"
 dependencies = [
     "httpx>=0.28.1",
@@ -39,3 +39,7 @@ warn_redundant_casts = true
 strict_equality = true
 ignore_missing_imports = false
 show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true

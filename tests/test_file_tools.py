@@ -7,7 +7,7 @@ from vad_code.tools.file_tools import FileTools
 
 @pytest.fixture
 def mock_settings(tmp_path):
-    with patch('vad_code.infrastructure.file_system.settings') as mock:
+    with patch("vad_code.infrastructure.file_system.settings") as mock:
         mock.project_root = str(tmp_path)
         yield mock
 
@@ -167,7 +167,7 @@ def test_run_command_allowed(tools, tmp_path):
 
 def test_run_command_forbidden(tools):
     result = tools.run_command("rm -rf /")
-    assert "запрещена" in result
+    assert "Ошибка безопасности" in result
 
 
 def test_copy_file(tools, tmp_path):
@@ -293,7 +293,7 @@ def test_count_lines_dir(tools, tmp_path):
 
 def test_lru_cache_eviction(tools, tmp_path):
     """Проверяет, что LRU-кэш ограничивает размер и удаляет старые элементы."""
-    from vad_code.tools.file_tools import SimpleLRUCache
+    from vad_code.infrastructure.cache import SimpleLRUCache
 
     # Создаем кэш с лимитом 3 элемента
     cache = SimpleLRUCache(max_size=3)
@@ -329,7 +329,7 @@ def test_lru_cache_eviction(tools, tmp_path):
 
 def test_lru_cache_access_updates_order(tools, tmp_path):
     """Проверяет, что доступ к элементу обновляет его порядок (LRU)."""
-    from vad_code.tools.file_tools import SimpleLRUCache
+    from vad_code.infrastructure.cache import SimpleLRUCache
 
     cache = SimpleLRUCache(max_size=3)
 
@@ -366,16 +366,17 @@ def test_file_tools_cache_integration(tools, tmp_path):
         tools.read_file(f"file_{i}.txt")
 
     # Проверяем, что кэш не содержит больше 50 элементов
-    assert len(tools._cache.cache) <= 50
+    # Кэш теперь инкапсулирован внутри FileSystemTools
+    assert len(tools._fs_tools._cache.cache) <= 50
 
     # Первые 10 файлов должны быть вытеснены из кэша
     for i in range(10):
-        found, _ = tools._cache.get(f"file_{i}.txt")
+        found, _ = tools._fs_tools._cache.get(f"file_{i}.txt")
         assert not found, f"file_{i}.txt должен быть вытеснен из кэша"
 
     # Последние файлы должны быть в кэше
     for i in range(40, 60):
-        found, val = tools._cache.get(f"file_{i}.txt")
+        found, val = tools._fs_tools._cache.get(f"file_{i}.txt")
         assert found and val == f"content_{i}"
 
 

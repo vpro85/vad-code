@@ -1,4 +1,5 @@
 """Модуль логирования."""
+
 import json
 import logging
 import sys
@@ -32,8 +33,7 @@ def setup_logger() -> logging.Logger:
 
     # Формат для консоли: читаемый человеком
     console_formatter = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%H:%M:%S"
+        fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S"
     )
 
     # Формат для файла: JSON (структурированный)
@@ -47,10 +47,7 @@ def setup_logger() -> logging.Logger:
     # Запись всех деталей в файл с ротацией:
     # maxBytes=5*1024*1024 (5 MB), backupCount=5 (храним до 5 старых файлов)
     file_handler = RotatingFileHandler(
-        "agent.log",
-        maxBytes=5 * 1024 * 1024,
-        backupCount=5,
-        encoding="utf-8"
+        "agent.log", maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
     )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)

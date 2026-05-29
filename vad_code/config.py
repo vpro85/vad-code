@@ -2,6 +2,7 @@
 Конфигурация приложения.
 Поддерживает переопределение через переменные окружения (Docker, .env).
 """
+
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +33,11 @@ class Settings(BaseSettings):
     max_history_messages: int = 20
     timeout: int = 1200
     max_context_tokens: int = 30000
+
+    # Безопасность
+    # Допустимые уровни риска инструментов: read, write, dangerous
+    # По умолчанию разрешены все уровни
+    allowed_tool_risk_levels: str = "read,write,dangerous"
 
 
 settings = Settings()

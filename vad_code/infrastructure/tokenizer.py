@@ -1,6 +1,7 @@
 """
 Модуль токенизации текста.
 """
+
 from typing import Any
 
 from transformers import AutoTokenizer
@@ -17,7 +18,9 @@ class Tokenizer:
     def __init__(self) -> None:
         # Загружаем токенизатор для указанной модели
         # use_fast=True используется для ускорения работы
-        self.tokenizer = AutoTokenizer.from_pretrained(settings.llm_model, use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            settings.llm_model, use_fast=True
+        )
 
     def count_tokens(self, text: str) -> int:
         """
@@ -33,6 +36,6 @@ class Tokenizer:
         total = 0
         for msg in messages:
             # Считаем токены для роли и контента
-            total += self.count_tokens(msg['role'])
-            total += self.count_tokens(msg['content'])
+            total += self.count_tokens(msg["role"])
+            total += self.count_tokens(msg["content"])
         return total

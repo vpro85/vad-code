@@ -57,3 +57,7 @@ agent.log
 
 # Docker volumes (локальные данные LM Studio)
 lm-studio-data/
+
+# Backup directory for undo/redo
+.vad_backups/
+/agent.log.*

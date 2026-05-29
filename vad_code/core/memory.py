@@ -1,6 +1,7 @@
 """
 Модуль управления памятью агента
 """
+
 from typing import Any
 
 from vad_code.config import settings
@@ -34,7 +35,7 @@ class ConversationMemory:
         # 1. Лимит по количеству сообщений (сохраняем первое сообщение сессии)
         if len(self.history) > settings.max_history_messages:
             first_msg = self.history[0]
-            recent = self.history[-(settings.max_history_messages - 1):]
+            recent = self.history[-(settings.max_history_messages - 1) :]
             self.history = [first_msg] + recent
 
         # 2. Лимит по количеству токенов
@@ -44,14 +45,20 @@ class ConversationMemory:
             return system_tokens + self.tokenizer.count_messages_tokens(self.history)
 
         total_tokens = get_current_total()
-        log.debug("Current history size: %d tokens, %d messages", total_tokens, len(self.history))
+        log.debug(
+            "Current history size: %d tokens, %d messages",
+            total_tokens,
+            len(self.history),
+        )
 
         if total_tokens <= settings.max_context_tokens:
             return
 
         # 3. Попытка удалить пары: [assistant (tool call)] + [user (observation)]
         idx = 0
-        while total_tokens > settings.max_context_tokens and idx + 1 < len(self.history):
+        while total_tokens > settings.max_context_tokens and idx + 1 < len(
+            self.history
+        ):
             msg_a = self.history[idx]
             msg_b = self.history[idx + 1]
 
@@ -60,10 +67,12 @@ class ConversationMemory:
                 and msg_b["role"] == "user"
                 and msg_b["content"].startswith("OBSERVATION:")
             ):
-                pair_tokens = (self.tokenizer.count_tokens(msg_a["role"]) +
-                               self.tokenizer.count_tokens(msg_a["content"]) +
-                               self.tokenizer.count_tokens(msg_b["role"]) +
-                               self.tokenizer.count_tokens(msg_b["content"]))
+                pair_tokens = (
+                    self.tokenizer.count_tokens(msg_a["role"])
+                    + self.tokenizer.count_tokens(msg_a["content"])
+                    + self.tokenizer.count_tokens(msg_b["role"])
+                    + self.tokenizer.count_tokens(msg_b["content"])
+                )
                 del self.history[idx : idx + 2]
                 total_tokens -= pair_tokens
             else:
@@ -73,7 +82,19 @@ class ConversationMemory:
         if total_tokens > settings.max_context_tokens and len(self.history) > 1:
             while total_tokens > settings.max_context_tokens and len(self.history) > 1:
                 removed_msg = self.history.pop(1)
-                removed_tokens = (self.tokenizer.count_tokens(removed_msg["role"]) +
-                                  self.tokenizer.count_tokens(removed_msg["content"]))
+                removed_tokens = self.tokenizer.count_tokens(
+                    removed_msg["role"]
+                ) + self.tokenizer.count_tokens(removed_msg["content"])
                 total_tokens -= removed_tokens
-                log.info("🗑️ Удалено старое сообщение из истории для экономии контекста.")
+                log.info(
+                    "🗑️ Удалено старое сообщение из истории для экономии контекста."
+                )
+
+    def to_text(self) -> str:
+        """Возвращает текстовое представление истории для сохранения в файл."""
+        lines = []
+        for msg in self.history:
+            role = msg["role"].upper()
+            content = msg["content"]
+            lines.append(f"[{role}] {content}")
+        return "\n---\n".join(lines)

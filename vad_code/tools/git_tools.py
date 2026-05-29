@@ -1,16 +1,17 @@
 """
 Модуль инструментов для работы с Git.
 """
+
 import subprocess
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from .file_tools import register_tool
+from .permissions import register_tool, ToolRiskLevel
 from ..infrastructure.file_system import FileSystemService
 
-
 # --- Схемы валидации аргументов ---
+
 
 class GitStatusSchema(BaseModel):
     """Схема для git status."""
@@ -18,6 +19,7 @@ class GitStatusSchema(BaseModel):
 
 class GitDiffSchema(BaseModel):
     """Схема для git diff."""
+
     path: Optional[str] = Field(
         None,
         description="Путь к конкретному файлу для просмотра разницы. "
@@ -27,6 +29,7 @@ class GitDiffSchema(BaseModel):
 
 class GitDiffStagedSchema(BaseModel):
     """Схема для git diff --staged."""
+
     path: Optional[str] = Field(
         None,
         description="Путь к конкретному файлу. "
@@ -36,51 +39,65 @@ class GitDiffStagedSchema(BaseModel):
 
 class GitAddSchema(BaseModel):
     """Схема для git add."""
+
     path: str = Field(..., description="Путь к файлу или '.' для всех файлов")
 
 
 class GitCommitSchema(BaseModel):
     """Схема для git commit."""
+
     message: str = Field(..., description="Сообщение коммита")
 
 
 class GitLogSchema(BaseModel):
     """Схема для git log."""
+
     limit: int = Field(10, description="Количество последних коммитов для отображения")
 
 
 class GitBranchSchema(BaseModel):
     """Схема для git branch."""
-    name: Optional[str] = Field(None, description="Имя ветки. Если None, показывает список веток.")
+
+    name: Optional[str] = Field(
+        None, description="Имя ветки. Если None, показывает список веток."
+    )
 
 
 class GitCheckoutSchema(BaseModel):
     """Схема для git checkout."""
+
     target: str = Field(..., description="Ветка или путь к файлу для восстановления")
 
 
 class GitShowSchema(BaseModel):
     """Схема для git show."""
+
     commit_hash: str = Field(..., description="Хэш коммита для просмотра")
 
 
 class GitStashSchema(BaseModel):
     """Схема для git stash."""
+
     action: str = Field(..., description="Действие: 'push', 'pop', 'list' или 'apply'")
 
 
 class GitMergeSchema(BaseModel):
     """Схема для git merge."""
+
     branch: str = Field(..., description="Имя ветки для слияния")
 
 
 class GitBlameSchema(BaseModel):
     """Схема для git blame."""
-    path: str = Field(..., description="Путь к файлу для просмотра истории изменений по строкам")
+
+    path: str = Field(
+        ..., description="Путь к файлу для просмотра истории изменений по строкам"
+    )
 
 
 class GitLogFileSchema(BaseModel):
     """Схема для git log конкретного файла."""
+
     path: str = Field(..., description="Путь к файлу")
     limit: int = Field(10, description="Количество последних коммитов для отображения")
 
@@ -91,6 +108,7 @@ class GitCurrentBranchSchema(BaseModel):
 
 class GitSearchCommitsSchema(BaseModel):
     """Схема для поиска коммитов по сообщению."""
+
     query: str = Field(..., description="Текст для поиска в сообщениях коммитов")
     limit: int = Field(10, description="Количество результатов для отображения")
 
@@ -125,6 +143,7 @@ class GitTools:
     @register_tool(
         "показывает статус репозитория (какие файлы изменены, удалены или не отслеживаются).",
         schema=GitStatusSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def git_status(self) -> str:
         """Возвращает вывод git status."""
@@ -133,6 +152,7 @@ class GitTools:
     @register_tool(
         "показывает детальные изменения в коде (diff). Полезно перед коммитом.",
         schema=GitDiffSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def git_diff(self, path: Optional[str] = None) -> str:
         """Возвращает вывод git diff."""
@@ -144,6 +164,7 @@ class GitTools:
     @register_tool(
         "показать изменения в staged файлах (git diff --staged).",
         schema=GitDiffStagedSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def git_diff_staged(self, path: Optional[str] = None) -> str:
         """Возвращает вывод git diff --staged."""
@@ -155,6 +176,7 @@ class GitTools:
     @register_tool(
         "добавляет файлы в индекс (staging area) для последующего коммита.",
         schema=GitAddSchema,
+        risk_level=ToolRiskLevel.WRITE,
     )
     def git_add(self, path: str) -> str:
         """Выполняет git add."""
@@ -163,6 +185,7 @@ class GitTools:
     @register_tool(
         "создает коммит с указанным сообщением.",
         schema=GitCommitSchema,
+        risk_level=ToolRiskLevel.WRITE,
     )
     def git_commit(self, message: str) -> str:
         """Выполняет git commit."""
@@ -171,6 +194,7 @@ class GitTools:
     @register_tool(
         "показывает историю коммитов.",
         schema=GitLogSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def git_log(self, limit: int = 10) -> str:
         """Выполняет git log."""
@@ -179,6 +203,7 @@ class GitTools:
     @register_tool(
         "показывает список веток или создает новую.",
         schema=GitBranchSchema,
+        risk_level=ToolRiskLevel.WRITE,
     )
     def git_branch(self, name: Optional[str] = None) -> str:
         """Выполняет git branch."""
@@ -190,6 +215,7 @@ class GitTools:
     @register_tool(
         "переключает ветку или восстанавливает файл из индекса.",
         schema=GitCheckoutSchema,
+        risk_level=ToolRiskLevel.WRITE,
     )
     def git_checkout(self, target: str) -> str:
         """Выполняет git checkout."""
@@ -198,6 +224,7 @@ class GitTools:
     @register_tool(
         "показывает детали конкретного коммита.",
         schema=GitShowSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def git_show(self, commit_hash: str) -> str:
         """Выполняет git show."""
@@ -206,6 +233,7 @@ class GitTools:
     @register_tool(
         "управляет временным хранилищем изменений (stash).",
         schema=GitStashSchema,
+        risk_level=ToolRiskLevel.WRITE,
     )
     def git_stash(self, action: str) -> str:
         """Выполняет git stash."""
@@ -214,6 +242,7 @@ class GitTools:
     @register_tool(
         "сливает указанную ветку в текущую.",
         schema=GitMergeSchema,
+        risk_level=ToolRiskLevel.WRITE,
     )
     def git_merge(self, branch: str) -> str:
         """Выполняет git merge."""
@@ -222,6 +251,7 @@ class GitTools:
     @register_tool(
         "показывает историю изменений по строкам файла (git blame).",
         schema=GitBlameSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def git_blame(self, path: str) -> str:
         """Выполняет git blame в читаемом формате."""
@@ -281,6 +311,7 @@ class GitTools:
     @register_tool(
         "показывает историю изменений конкретного файла.",
         schema=GitLogFileSchema,
+        risk_level=ToolRiskLevel.READ,
     )
     def git_log_file(self, path: str, limit: int = 10) -> str:
         """Выполняет git log для конкретного файла."""

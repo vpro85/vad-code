@@ -11,7 +11,7 @@ def mock_settings(tmp_path):
     Подменяет settings.project_root на временную директорию pytest,
     чтобы тесты не влияли на реальные файлы проекта.
     """
-    with patch('vad_code.infrastructure.file_system.settings') as mock:
+    with patch("vad_code.infrastructure.file_system.settings") as mock:
         mock.project_root = str(tmp_path)
         yield mock
 
