@@ -137,7 +137,7 @@ class FileSystemTools:
             if not full_path.exists():
                 return f"Ошибка: Файл {path} не найден."
 
-            with open(full_path, "r", encoding="utf-8") as f:
+            with open(full_path, "r", encoding="utf-8", errors="replace") as f:
                 lines = f.readlines()
 
             start_idx = max(0, start_line - 1)

@@ -135,7 +135,8 @@ class SessionMetrics:
                     f"  Токенов в промптах: {tm.total_prompt_tokens:,}",
                     f"  Токенов в ответах: {tm.total_completion_tokens:,}",
                     f"  Всего токенов: {tm.total_tokens:,}",
-                    f"  Среднее на запрос: {tm.avg_prompt_tokens:.0f} + {tm.avg_completion_tokens:.0f}",
+                    f"  Среднее на запрос: {tm.avg_prompt_tokens:.0f} "
+                    f"+ {tm.avg_completion_tokens:.0f}",
                     "",
                 ]
             )
@@ -157,7 +158,8 @@ class SessionMetrics:
                     f"  {tool_metric.name}: {tool_metric.call_count} вызовов, "
                     f"успех {tool_metric.success_rate:.0f}%, "
                     f"среднее время {tool_metric.avg_execution_time:.2f}с "
-                    f"(min: {tool_metric.min_execution_time:.2f}с, max: {tool_metric.max_execution_time:.2f}с)"
+                    f"(min: {tool_metric.min_execution_time:.2f}с, "
+                    f"max: {tool_metric.max_execution_time:.2f}с)"
                 )
             lines.append("")
 

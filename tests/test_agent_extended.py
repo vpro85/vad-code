@@ -17,6 +17,8 @@ def mock_llm_client():
 def mock_executor():
     executor = AsyncMock()
     executor.execute = AsyncMock()
+    executor.tools = {}
+    executor.metadata = {}
     return executor
 
 

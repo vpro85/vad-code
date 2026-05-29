@@ -7,12 +7,14 @@ from pathlib import Path
 from vad_code.config import settings
 from vad_code.core.agent import Agent
 from vad_code.core.executor import ToolExecutor
+from vad_code.core.multi_agent.orchestrator import Orchestrator
 from vad_code.infrastructure.llm_providers import create_provider
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.metrics import format_metrics, reset_metrics
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.tools import FileTools, TOOL_REGISTRY
 from vad_code.tools.git_tools import GitTools
+from vad_code.tools.multi_agent_tools import MultiAgentTools
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
 VERSION = "0.4.0"
@@ -124,6 +126,16 @@ async def run(args: argparse.Namespace) -> None:
     # 2. Настраиваем инструменты
     file_tools = FileTools()
     git_tools = GitTools()
+    multi_agent_tools = MultiAgentTools()
+
+    # 3. Создаем оркестратор (если мульти-агентный режим включен)
+    orchestrator: Orchestrator | None = None
+    if settings.enable_multi_agent:
+        orchestrator = Orchestrator(llm_provider, executor, tokenizer)
+        orchestrator.create_default_agents()
+        multi_agent_tools.orchestrator = orchestrator
+        log.info("🤖 Мульти-агентный режим включен")
+
     for name, info in TOOL_REGISTRY.items():
         if hasattr(file_tools, name):
             method = getattr(file_tools, name)
@@ -135,6 +147,89 @@ async def run(args: argparse.Namespace) -> None:
             executor.register_tool(
                 name, method, schema=info.get("schema"), metadata=info
             )
+        elif hasattr(multi_agent_tools, name):
+            method = getattr(multi_agent_tools, name)
+            executor.register_tool(
+                name, method, schema=info.get("schema"), metadata=info
+            )
+
+    # Явная регистрация инструментов мульти-агентности (из-за циклического импорта)
+    if settings.enable_multi_agent:
+        from vad_code.tools.schemas import (
+            ListAgentsSchema,
+            GetOrchestratorStatsSchema,
+            RouteTaskSchema,
+            ExecuteWithAgentSchema,
+            ExecuteParallelTasksSchema,
+            GetCommunicationHistorySchema,
+            ResetAgentsSchema,
+        )
+
+        multi_agent_tool_defs = [
+            (
+                "list_agents",
+                ListAgentsSchema,
+                ToolRiskLevel.READ,
+                "Возвращает список всех зарегистрированных специализированных агентов "
+                "(code_review, testing, documentation, security) и их возможности.",
+            ),
+            (
+                "get_orchestrator_stats",
+                GetOrchestratorStatsSchema,
+                ToolRiskLevel.READ,
+                "Возвращает статистику работы оркестратора и всех агентов: "
+                "количество выполненных задач, время выполнения, ошибки.",
+            ),
+            (
+                "route_task",
+                RouteTaskSchema,
+                ToolRiskLevel.READ,
+                "Определяет, какой специализированный агент "
+                "лучше всего подходит для данной задачи.",
+            ),
+            (
+                "execute_with_agent",
+                ExecuteWithAgentSchema,
+                ToolRiskLevel.WRITE,
+                "Выполняет задачу через специализированного агента. "
+                "Используйте для сложных задач: code review, написание тестов, "
+                "документация, аудит безопасности.",
+            ),
+            (
+                "execute_parallel_tasks",
+                ExecuteParallelTasksSchema,
+                ToolRiskLevel.WRITE,
+                "Выполняет несколько независимых задач параллельно через разных агентов.",
+            ),
+            (
+                "get_communication_history",
+                GetCommunicationHistorySchema,
+                ToolRiskLevel.READ,
+                "Возвращает историю сообщений между агентами.",
+            ),
+            (
+                "reset_agents",
+                ResetAgentsSchema,
+                ToolRiskLevel.WRITE,
+                "Сбрасывает статистику всех агентов.",
+            ),
+        ]
+
+        for tool_name, schema, risk_level, description in multi_agent_tool_defs:
+            if hasattr(multi_agent_tools, tool_name):
+                method = getattr(multi_agent_tools, tool_name)
+                executor.register_tool(
+                    tool_name,
+                    method,
+                    schema=schema,
+                    metadata={
+                        "description": description,
+                        "schema": schema,
+                        "func_name": tool_name,
+                        "risk_level": risk_level,
+                    },
+                )
+                log.info("🤖 Зарегистрирован мульти-агентный инструмент: %s", tool_name)
 
     agent = Agent(llm_client=llm_provider, executor=executor, tokenizer=tokenizer)
 
@@ -206,9 +301,23 @@ async def run(args: argparse.Namespace) -> None:
                     "  /audit-stats - показать статистику вызовов инструментов\n"
                     "  /metrics    - показать метрики сессии (время, токены, инструменты)\n"
                     "  /stats      - показать статистику сессии\n"
+                    "  /multi-agent - включить/выключить мульти-агентный режим\n"
                     "  /help       - показать это сообщение\n"
                     "  exit/quit   - выйти\n"
                 )
+                continue
+
+            # Переключение мульти-агентного режима
+            if user_input.lower() == "/multi-agent":
+                if not orchestrator:
+                    orchestrator = Orchestrator(llm_provider, executor, tokenizer)
+                    orchestrator.create_default_agents()
+                    multi_agent_tools.orchestrator = orchestrator
+                    log.info("🤖 Мульти-агентный режим включен!")
+                else:
+                    orchestrator = None
+                    multi_agent_tools.orchestrator = None
+                    log.info("🤖 Мульти-агентный режим выключен.")
                 continue
 
             await agent.handle(user_input)

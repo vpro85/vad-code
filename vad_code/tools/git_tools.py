@@ -3,7 +3,7 @@
 """
 
 import subprocess
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -20,7 +20,7 @@ class GitStatusSchema(BaseModel):
 class GitDiffSchema(BaseModel):
     """Схема для git diff."""
 
-    path: Optional[str] = Field(
+    path: str | None = Field(
         None,
         description="Путь к конкретному файлу для просмотра разницы. "
         "Если None, показывает все изменения.",
@@ -30,7 +30,7 @@ class GitDiffSchema(BaseModel):
 class GitDiffStagedSchema(BaseModel):
     """Схема для git diff --staged."""
 
-    path: Optional[str] = Field(
+    path: str | None = Field(
         None,
         description="Путь к конкретному файлу. "
         "Если None, показывает все staged изменения.",
@@ -58,7 +58,7 @@ class GitLogSchema(BaseModel):
 class GitBranchSchema(BaseModel):
     """Схема для git branch."""
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None, description="Имя ветки. Если None, показывает список веток."
     )
 
@@ -121,9 +121,25 @@ class GitTools:
 
     def _run_git(self, args: list[str]) -> str:
         """Вспомогательный метод для запуска команд git."""
+        # Валидация аргументов, содержащих пути
+        validated_args = []
+        for arg in args:
+            # Валидируем только аргументы, которые явно выглядят как пути к файлам
+            # (содержат '/' или начинаются с '.'), чтобы не ломать имена веток/коммитов
+            is_path_like = "/" in arg or arg.startswith(".")
+
+            if is_path_like and not arg.startswith("-"):
+                try:
+                    safe_path = self.fs.safe_path(arg)
+                    validated_args.append(str(safe_path))
+                except (ValueError, OSError):
+                    return f"Ошибка: Недопустимый путь '{arg}'"
+            else:
+                validated_args.append(arg)
+
         try:
             result = subprocess.run(
-                ["git"] + args,
+                ["git"] + validated_args,
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -154,7 +170,7 @@ class GitTools:
         schema=GitDiffSchema,
         risk_level=ToolRiskLevel.READ,
     )
-    def git_diff(self, path: Optional[str] = None) -> str:
+    def git_diff(self, path: str | None = None) -> str:
         """Возвращает вывод git diff."""
         args = ["diff"]
         if path:
@@ -166,7 +182,7 @@ class GitTools:
         schema=GitDiffStagedSchema,
         risk_level=ToolRiskLevel.READ,
     )
-    def git_diff_staged(self, path: Optional[str] = None) -> str:
+    def git_diff_staged(self, path: str | None = None) -> str:
         """Возвращает вывод git diff --staged."""
         args = ["diff", "--staged"]
         if path:
@@ -205,7 +221,7 @@ class GitTools:
         schema=GitBranchSchema,
         risk_level=ToolRiskLevel.WRITE,
     )
-    def git_branch(self, name: Optional[str] = None) -> str:
+    def git_branch(self, name: str | None = None) -> str:
         """Выполняет git branch."""
         args = ["branch"]
         if name:

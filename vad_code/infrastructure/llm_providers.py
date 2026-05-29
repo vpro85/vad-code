@@ -60,6 +60,7 @@ class BaseLLMProvider(abc.ABC):
             except (
                 Exception
             ) as e:  # noqa: BLE001 - намеренно широкое исключение для retry-логики
+                # pylint: disable=broad-exception-caught
                 if attempt < max_retries:
                     delay = base_delay * (2 ** (attempt - 1))
                     log.warning(
@@ -113,7 +114,7 @@ class BaseHTTPProvider(BaseLLMProvider):
     @abc.abstractmethod
     def _get_request_url(self) -> str:
         """Возвращает URL для запроса."""
-        ...
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _build_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:

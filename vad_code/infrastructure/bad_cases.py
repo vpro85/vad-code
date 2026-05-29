@@ -27,10 +27,12 @@ class BadCase:
     resolution_notes: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """Сериализация в словарь."""
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "BadCase":
+        """Десериализация из словаря."""
         return cls(**data)
 
 
@@ -38,6 +40,7 @@ class BadCaseManager:
     """Управляет коллекцией проблемных случаев."""
 
     def __init__(self) -> None:
+        """Инициализация менеджера проблемных случаев."""
         self.cases: list[BadCase] = []
         self._load()
 
@@ -48,9 +51,9 @@ class BadCaseManager:
                 with open(BAD_CASES_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self.cases = [BadCase.from_dict(item) for item in data]
-                log.debug(f"Загружено {len(self.cases)} проблемных случаев")
+                log.debug("Загружено %d проблемных случаев", len(self.cases))
             except (json.JSONDecodeError, KeyError) as e:
-                log.error(f"Ошибка загрузки bad_cases.json: {e}")
+                log.error("Ошибка загрузки bad_cases.json: %s", e)
                 self.cases = []
 
     def _save(self) -> None:
@@ -64,9 +67,9 @@ class BadCaseManager:
                     ensure_ascii=False,
                     indent=2,
                 )
-            log.debug(f"Сохранено {len(self.cases)} проблемных случаев")
+            log.debug("Сохранено %d проблемных случаев", len(self.cases))
         except OSError as e:
-            log.error(f"Ошибка сохранения bad_cases.json: {e}")
+            log.error("Ошибка сохранения bad_cases.json: %s", e)
 
     def add_case(
         self,
@@ -79,6 +82,11 @@ class BadCaseManager:
         """
         Добавляет новый проблемный случай.
 
+        :param user_input: Ввод пользователя
+        :param ai_response: Ответ AI
+        :param error_type: Тип ошибки
+        :param error_details: Детали ошибки
+        :param context: Контекст
         :return: ID созданного случая
         """
         case_id = (
@@ -95,7 +103,7 @@ class BadCaseManager:
         )
         self.cases.append(case)
         self._save()
-        log.info(f"Добавлен проблемный случай: {case_id}")
+        log.info("Добавлен проблемный случай: %s", case_id)
         return case_id
 
     def get_case(self, case_id: str) -> Optional[BadCase]:

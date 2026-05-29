@@ -132,7 +132,7 @@ class AuditLogger:
             self.audit_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.audit_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(record.to_dict(), ensure_ascii=False) + "\n")
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             log.error("❌ Failed to save audit record: %s", e)
 
     def get_records(
@@ -202,7 +202,7 @@ class AuditLogger:
                 stats["failed"] += 1
 
         # Вычисляем среднее время для каждого инструмента
-        for tool, stats in tools_stats.items():
+        for _tool, stats in tools_stats.items():
             stats["avg_duration_ms"] = round(
                 stats["total_duration_ms"] / stats["count"], 2
             )

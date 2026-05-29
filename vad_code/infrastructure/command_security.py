@@ -4,6 +4,7 @@
 """
 
 import re
+import shlex
 from typing import Optional
 
 from vad_code.infrastructure.logger import log
@@ -117,8 +118,6 @@ DANGEROUS_PATTERNS = [
 class CommandSecurityError(Exception):
     """Ошибка безопасности при выполнении команды."""
 
-    pass
-
 
 class CommandValidator:
     """
@@ -207,14 +206,12 @@ class CommandValidator:
             Имя базовой команды или None.
         """
         try:
-            import shlex
-
             args = shlex.split(command)
             if args:
                 # Убираем путь, оставляем только имя команды
                 return args[0].split("/")[-1]
         except ValueError:
-            pass
+            return None
         return None
 
     def validate_timeout(self, timeout: int) -> tuple[bool, str]:

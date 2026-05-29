@@ -21,31 +21,21 @@ from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 class ToolExecutionError(Exception):
     """Базовое исключение для ошибок выполнения инструментов."""
 
-    pass
-
 
 class ToolValidationError(ToolExecutionError):
     """Ошибка валидации аргументов."""
-
-    pass
 
 
 class ToolPermissionError(ToolExecutionError):
     """Ошибка доступа к инструменту."""
 
-    pass
-
 
 class ToolNotFoundError(ToolExecutionError):
     """Инструмент не найден."""
 
-    pass
-
 
 class ToolTimeoutError(ToolExecutionError):
     """Превышено время выполнения инструмента."""
-
-    pass
 
 
 class ToolExecutor:
@@ -143,19 +133,19 @@ class ToolExecutor:
         try:
             if inspect.iscoroutinefunction(func):
                 return await asyncio.wait_for(func(**args), timeout=self.timeout)
-            else:
-                loop = asyncio.get_event_loop()
-                return await asyncio.wait_for(
-                    loop.run_in_executor(None, lambda: func(**args)),
-                    timeout=self.timeout,
-                )
-        except asyncio.TimeoutError:
+
+            loop = asyncio.get_running_loop()
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: func(**args)),
+                timeout=self.timeout,
+            )
+        except asyncio.TimeoutError as exc:
             raise ToolTimeoutError(
                 f"Превышено время выполнения инструмента (таймаут: {self.timeout}с)"
-            )
+            ) from exc
 
     def _get_affected_file_path(
-        self, func_name: str, args: dict[str, Any]
+        self, args: dict[str, Any]
     ) -> Optional[str]:
         """Пытается определить путь к файлу, который будет изменен."""
         # Приоритетные имена аргументов, содержащих путь
@@ -192,9 +182,6 @@ class ToolExecutor:
             func_name = self._validate_tool_name(raw_tool)
             args = call_data.get("arguments", {})
 
-            # 2. Валидация имени инструмента
-            func_name = self._validate_tool_name(func_name)
-
             # 3. Проверка разрешений
             self._check_permissions(func_name)
 
@@ -210,7 +197,7 @@ class ToolExecutor:
             risk_level = tool_meta.get("risk_level", ToolRiskLevel.READ)
 
             if risk_level in (ToolRiskLevel.WRITE, ToolRiskLevel.DANGEROUS):
-                affected_path = self._get_affected_file_path(func_name, final_args)
+                affected_path = self._get_affected_file_path(final_args)
                 if affected_path:
                     backup_manager.create_backup(affected_path, operation=func_name)
 
