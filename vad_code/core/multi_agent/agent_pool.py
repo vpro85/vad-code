@@ -1,7 +1,7 @@
 """Пул агентов для параллельного выполнения задач."""
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from vad_code.core.multi_agent.base_agent import AgentType, BaseAgent
@@ -159,7 +159,7 @@ class AgentPool:
     ) -> TaskResult:
         """Повторяет выполнение задачи."""
         self.stats["tasks_retried"] += 1
-        log.info(f"🔄 Повторная попытка выполнения задачи")
+        log.info("🔄 Повторная попытка выполнения задачи")
 
         for attempt in range(self._config.max_retries):
             try:

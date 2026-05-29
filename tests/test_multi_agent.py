@@ -1,17 +1,15 @@
 """Тесты для мульти-агентной архитектуры."""
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from vad_code.core.multi_agent.base_agent import AgentCapability, AgentType, BaseAgent
 from vad_code.core.multi_agent.communication import (
-    AgentMessage,
     CommunicationBus,
     MessageType,
 )
-from vad_code.core.multi_agent.orchestrator import Orchestrator, TaskResult
+from vad_code.core.multi_agent.orchestrator import Orchestrator
 from vad_code.core.multi_agent.agent_pool import AgentPool, WorkerConfig
 from vad_code.core.multi_agent.specialized_agents import (
     CodeReviewAgent,

@@ -2,14 +2,12 @@
 
 import asyncio
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
-from vad_code.config import settings
 from vad_code.core.executor import ToolExecutor
 from vad_code.core.multi_agent.base_agent import AgentType, BaseAgent
 from vad_code.core.multi_agent.communication import (
-    AgentMessage,
     CommunicationBus,
     MessageType,
 )

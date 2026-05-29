@@ -1,6 +1,5 @@
 """Инструменты для управления мульти-агентной системой."""
 
-import json
 from typing import Any
 
 from vad_code.core.multi_agent.base_agent import AgentType
@@ -59,7 +58,7 @@ class MultiAgentTools:
             info = agent.get_info()
             result += f"## {agent.__class__.__name__}\n"
             result += f"- **Тип:** `{info['type']}`\n"
-            result += f"- **Способности:**\n"
+            result += "- **Способности:**\n"
             for cap in info.get("capabilities", []):
                 result += f"  - {cap['name']}: {cap['description']}\n"
             stats = info.get("stats", {})
@@ -143,7 +142,10 @@ class MultiAgentTools:
         )
 
         if result.success:
-            return f"✅ Задача выполнена агентом `{result.agent_type.value}` за {result.execution_time_ms:.0f}ms\n\n{result.result}"
+            return (
+                f"✅ Задача выполнена агентом `{result.agent_type.value}` "
+                f"за {result.execution_time_ms:.0f}ms\n\n{result.result}"
+            )
         else:
             return f"❌ Ошибка выполнения задачи агентом `{result.agent_type.value}`: {result.error}"
 

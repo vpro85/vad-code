@@ -5,10 +5,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from vad_code.config import settings
 from vad_code.core.executor import ToolExecutor
 from vad_code.infrastructure.llm_providers import BaseLLMProvider
-from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.core.memory import ConversationMemory
 

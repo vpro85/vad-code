@@ -2,11 +2,8 @@
 
 from typing import Any
 
-from vad_code.core.executor import ToolExecutor
-from vad_code.core.multi_agent.base_agent import AgentCapability, AgentType, BaseAgent
-from vad_code.infrastructure.llm_providers import BaseLLMProvider
+from vad_code.core.multi_agent.base_agent import AgentCapability, BaseAgent
 from vad_code.infrastructure.logger import log
-from vad_code.infrastructure.tokenizer import Tokenizer
 
 
 class CodeReviewAgent(BaseAgent):
@@ -114,6 +111,8 @@ class CodeReviewAgent(BaseAgent):
 
 class TestingAgent(BaseAgent):
     """Агент для написания и запуска тестов."""
+
+    __test__ = False  # Чтобы pytest не пытался собрать этот класс как тест
 
     def _setup_capabilities(self) -> None:
         self.capabilities = [

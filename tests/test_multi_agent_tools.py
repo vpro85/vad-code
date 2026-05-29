@@ -1,7 +1,7 @@
 """Тесты для мульти-агентных инструментов."""
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from vad_code.core.multi_agent.base_agent import AgentType
 from vad_code.core.multi_agent.orchestrator import Orchestrator, TaskResult
@@ -203,4 +203,3 @@ def test_orchestrator_property_raises_when_none(multi_agent_tools_no_orch):
     """Тест: свойство orchestrator выбрасывает ошибку, если не инициализирован."""
     with pytest.raises(RuntimeError, match="Оркестратор не инициализирован"):
         _ = multi_agent_tools_no_orch.orchestrator
-

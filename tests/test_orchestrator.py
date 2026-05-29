@@ -1,16 +1,11 @@
 """Тесты для оркестратора мульти-агентной системы."""
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock
 
 from vad_code.core.multi_agent.base_agent import AgentType
-from vad_code.core.multi_agent.orchestrator import Orchestrator, TaskResult
-from vad_code.core.multi_agent.specialized_agents import (
-    CodeReviewAgent,
-    TestingAgent,
-    DocumentationAgent,
-    SecurityAgent,
-)
+from vad_code.core.multi_agent.orchestrator import Orchestrator
+from vad_code.core.multi_agent.specialized_agents import CodeReviewAgent
 
 
 @pytest.fixture
@@ -192,4 +187,3 @@ def test_agent_capabilities():
     assert len(code_agent.capabilities) > 0
     assert code_agent.can_handle("проведи ревью кода") > 0
     assert code_agent.can_handle("привет") == 0
-
