@@ -134,7 +134,7 @@ class ToolExecutor:
             if inspect.iscoroutinefunction(func):
                 return await asyncio.wait_for(func(**args), timeout=self.timeout)
 
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             return await asyncio.wait_for(
                 loop.run_in_executor(None, lambda: func(**args)),
                 timeout=self.timeout,
@@ -181,9 +181,6 @@ class ToolExecutor:
             raw_tool = call_data.get("tool")
             func_name = self._validate_tool_name(raw_tool)
             args = call_data.get("arguments", {})
-
-            # 2. Валидация имени инструмента
-            func_name = self._validate_tool_name(func_name)
 
             # 3. Проверка разрешений
             self._check_permissions(func_name)

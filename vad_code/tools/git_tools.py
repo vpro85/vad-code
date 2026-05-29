@@ -121,9 +121,25 @@ class GitTools:
 
     def _run_git(self, args: list[str]) -> str:
         """Вспомогательный метод для запуска команд git."""
+        # Валидация аргументов, содержащих пути
+        validated_args = []
+        for arg in args:
+            # Валидируем только аргументы, которые явно выглядят как пути к файлам
+            # (содержат '/' или начинаются с '.'), чтобы не ломать имена веток/коммитов
+            is_path_like = "/" in arg or arg.startswith(".")
+            
+            if is_path_like and not arg.startswith("-"):
+                try:
+                    safe_path = self.fs.safe_path(arg)
+                    validated_args.append(str(safe_path))
+                except (ValueError, OSError):
+                    return f"Ошибка: Недопустимый путь '{arg}'"
+            else:
+                validated_args.append(arg)
+
         try:
             result = subprocess.run(
-                ["git"] + args,
+                ["git"] + validated_args,
                 capture_output=True,
                 text=True,
                 timeout=30,

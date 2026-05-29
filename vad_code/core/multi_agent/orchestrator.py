@@ -79,41 +79,23 @@ class Orchestrator:
             SecurityAgent,
         )
 
-        agents = [
-            CodeReviewAgent(
-                agent_type=AgentType.CODE_REVIEW,
-                llm_client=self.llm_client,
-                executor=self.executor,
-                tokenizer=self.tokenizer,
-                system_prompt="",
-            ),
-            TestingAgent(
-                agent_type=AgentType.TESTING,
-                llm_client=self.llm_client,
-                executor=self.executor,
-                tokenizer=self.tokenizer,
-                system_prompt="",
-            ),
-            DocumentationAgent(
-                agent_type=AgentType.DOCUMENTATION,
-                llm_client=self.llm_client,
-                executor=self.executor,
-                tokenizer=self.tokenizer,
-                system_prompt="",
-            ),
-            SecurityAgent(
-                agent_type=AgentType.SECURITY,
-                llm_client=self.llm_client,
-                executor=self.executor,
-                tokenizer=self.tokenizer,
-                system_prompt="",
-            ),
+        agent_configs = [
+            (CodeReviewAgent, AgentType.CODE_REVIEW),
+            (TestingAgent, AgentType.TESTING),
+            (DocumentationAgent, AgentType.DOCUMENTATION),
+            (SecurityAgent, AgentType.SECURITY),
         ]
 
-        for agent in agents:
+        for agent_class, agent_type in agent_configs:
+            agent = agent_class(
+                agent_type=agent_type,
+                llm_client=self.llm_client,
+                executor=self.executor,
+                tokenizer=self.tokenizer,
+            )
             self.register_agent(agent)
 
-        log.info("🤖 Создано %d специализированных агентов", len(agents))
+        log.info("🤖 Создано %d специализированных агентов", len(agent_configs))
 
     def register_agent(self, agent: BaseAgent) -> None:
         """Регистрирует агента в оркестраторе."""
@@ -268,7 +250,7 @@ class Orchestrator:
 
         # Обработка исключений
         final_results: list[TaskResult] = []
-        for _, result in enumerate(results):
+        for result in results:
             if isinstance(result, Exception):
                 final_results.append(
                     TaskResult(

@@ -1,5 +1,6 @@
 """Базовый класс для специализированных агентов."""
 
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
@@ -44,7 +45,7 @@ class BaseAgent(ABC):
         llm_client: BaseLLMProvider,
         executor: ToolExecutor,
         tokenizer: Tokenizer,
-        system_prompt: str,
+        system_prompt: str = "",
     ) -> None:
         """
         Инициализация специализированного агента.
@@ -53,13 +54,13 @@ class BaseAgent(ABC):
         :param llm_client: Провайдер LLM
         :param executor: Исполнитель инструментов
         :param tokenizer: Токенизатор
-        :param system_prompt: Системный промпт для агента
+        :param system_prompt: Системный промпт для агента. Если пустой, используется get_system_prompt()
         """
         self.agent_type = agent_type
         self.llm_client = llm_client
         self.executor = executor
         self.tokenizer = tokenizer
-        self.system_prompt = system_prompt
+        self.system_prompt = system_prompt or self.get_system_prompt()
         self.memory = ConversationMemory(tokenizer, self.system_prompt)
 
         # Статистика агента
@@ -91,6 +92,29 @@ class BaseAgent(ABC):
         :param context: Контекст задачи (файлы, параметры и т.д.)
         :return: Результат выполнения
         """
+
+    async def _get_file_content(self, context: dict[str, Any] | None) -> str:
+        """
+        Получает содержимое файла из контекста или читает его через executor.
+
+        :param context: Контекст задачи
+        :return: Содержимое файла или пустая строка
+        """
+        if not context:
+            return ""
+
+        if "file_content" in context:
+            return context["file_content"]
+
+        if "file_path" in context:
+            call_data = json.dumps({
+                "tool": "read_file",
+                "arguments": {"path": context["file_path"]},
+            })
+            content = await self.executor.execute(call_data)
+            return content or ""
+
+        return ""
 
     def can_handle(self, task: str) -> float:
         """

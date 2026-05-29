@@ -171,6 +171,16 @@ class MultiAgentTools:
         if contexts is None:
             contexts = [None] * len(tasks)
 
+        # Проверка соответствия количества задач и контекстов
+        if len(contexts) != len(tasks):
+            log.warning(
+                "Количество контекстов (%d) не совпадает с количеством задач (%d). "
+                "Добавляем пустые контексты.",
+                len(contexts),
+                len(tasks),
+            )
+            contexts = list(contexts) + [None] * (len(tasks) - len(contexts))
+
         task_tuples = list(zip(tasks, contexts))
         results = await self._orchestrator.execute_parallel(task_tuples)
 

@@ -1,5 +1,6 @@
 """Специализированные агенты для различных задач."""
 
+import json
 from typing import Any
 
 from vad_code.core.multi_agent.base_agent import AgentCapability, BaseAgent
@@ -77,14 +78,7 @@ class CodeReviewAgent(BaseAgent):
         """Выполняет code review."""
         log.info("🔍 Code Review Agent обрабатывает: %s...", task[:50])
 
-        file_content = ""
-        if context and "file_content" in context:
-            file_content = context["file_content"]
-        elif context and "file_path" in context:
-            # Читаем файл через executor
-            file_content = await self.executor.execute(
-                '{"tool": "read_file", "arguments": {"path": "' + context["file_path"] + '"}}'
-            ) or ""
+        file_content = await self._get_file_content(context)
 
         if not file_content:
             return "❌ Не удалось получить содержимое файла для review."
@@ -183,13 +177,7 @@ class TestingAgent(BaseAgent):
         self, task: str, context: dict[str, Any] | None
     ) -> str:
         """Генерирует тесты."""
-        source_code = ""
-        if context and "file_content" in context:
-            source_code = context["file_content"]
-        elif context and "file_path" in context:
-            source_code = await self.executor.execute(
-                '{"tool": "read_file", "arguments": {"path": "' + context["file_path"] + '"}}'
-            ) or ""
+        source_code = await self._get_file_content(context)
 
         if not source_code:
             return "❌ Не удалось получить исходный код для тестирования."
@@ -218,9 +206,11 @@ class TestingAgent(BaseAgent):
         if context and "test_path" in context:
             test_path = context["test_path"]
 
-        result = await self.executor.execute(
-            '{"tool": "run_tests", "arguments": {"path": "' + test_path + '"}}'
-        )
+        call_data = json.dumps({
+            "tool": "run_tests",
+            "arguments": {"path": test_path},
+        })
+        result = await self.executor.execute(call_data)
         return result or "Тесты выполнены без вывода."
 
     async def _debug_tests(self, context: dict[str, Any] | None) -> str:
@@ -229,9 +219,11 @@ class TestingAgent(BaseAgent):
         if context and "test_output" in context:
             test_output = context["test_output"] or ""
         else:
-            test_output = await self.executor.execute(
-                '{"tool": "run_tests", "arguments": {"path": "tests/"}}'
-            ) or ""
+            call_data = json.dumps({
+                "tool": "run_tests",
+                "arguments": {"path": "tests/"},
+            })
+            test_output = await self.executor.execute(call_data) or ""
 
         debug_prompt = (
             f"Проанализируй результаты тестов и предложи исправления:\n\n"
@@ -310,13 +302,7 @@ class DocumentationAgent(BaseAgent):
         """Выполняет задачу документации."""
         log.info("📝 Documentation Agent обрабатывает: %s...", task[:50])
 
-        source_code = ""
-        if context and "file_content" in context:
-            source_code = context["file_content"]
-        elif context and "file_path" in context:
-            source_code = await self.executor.execute(
-                '{"tool": "read_file", "arguments": {"path": "' + context["file_path"] + '"}}'
-            ) or ""
+        source_code = await self._get_file_content(context)
 
         if not source_code:
             return "❌ Не удалось получить содержимое для документации."
@@ -404,13 +390,7 @@ class SecurityAgent(BaseAgent):
         """Выполняет аудит безопасности."""
         log.info("🔒 Security Agent обрабатывает: %s...", task[:50])
 
-        source_code = ""
-        if context and "file_content" in context:
-            source_code = context["file_content"]
-        elif context and "file_path" in context:
-            source_code = await self.executor.execute(
-                '{"tool": "read_file", "arguments": {"path": "' + context["file_path"] + '"}}'
-            ) or ""
+        source_code = await self._get_file_content(context)
 
         if not source_code:
             return "❌ Не удалось получить содержимое для аудита."
