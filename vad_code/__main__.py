@@ -164,7 +164,6 @@ async def run(args: argparse.Namespace) -> None:
             GetCommunicationHistorySchema,
             ResetAgentsSchema,
         )
-        from vad_code.tools.permissions import ToolRiskLevel
 
         multi_agent_tool_defs = [
             ("list_agents", ListAgentsSchema, ToolRiskLevel.READ),
@@ -190,7 +189,7 @@ async def run(args: argparse.Namespace) -> None:
                         "risk_level": risk_level,
                     },
                 )
-                log.info(f"🤖 Зарегистрирован мульти-агентный инструмент: {tool_name}")
+                log.info("🤖 Зарегистрирован мульти-агентный инструмент: %s", tool_name)
 
     agent = Agent(llm_client=llm_provider, executor=executor, tokenizer=tokenizer)
 

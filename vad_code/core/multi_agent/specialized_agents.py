@@ -75,7 +75,7 @@ class CodeReviewAgent(BaseAgent):
         self, task: str, context: dict[str, Any] | None = None
     ) -> str:
         """Выполняет code review."""
-        log.info(f"🔍 Code Review Agent обрабатывает: {task[:50]}...")
+        log.info("🔍 Code Review Agent обрабатывает: %s...", task[:50])
 
         file_content = ""
         if context and "file_content" in context:
@@ -167,7 +167,7 @@ class TestingAgent(BaseAgent):
         self, task: str, context: dict[str, Any] | None = None
     ) -> str:
         """Выполняет задачу тестирования."""
-        log.info(f"🧪 Testing Agent обрабатывает: {task[:50]}...")
+        log.info("🧪 Testing Agent обрабатывает: %s...", task[:50])
 
         # Определяем тип задачи
         task_lower = task.lower()
@@ -308,7 +308,7 @@ class DocumentationAgent(BaseAgent):
         self, task: str, context: dict[str, Any] | None = None
     ) -> str:
         """Выполняет задачу документации."""
-        log.info(f"📝 Documentation Agent обрабатывает: {task[:50]}...")
+        log.info("📝 Documentation Agent обрабатывает: %s...", task[:50])
 
         source_code = ""
         if context and "file_content" in context:
@@ -402,7 +402,7 @@ class SecurityAgent(BaseAgent):
         self, task: str, context: dict[str, Any] | None = None
     ) -> str:
         """Выполняет аудит безопасности."""
-        log.info(f"🔒 Security Agent обрабатывает: {task[:50]}...")
+        log.info("🔒 Security Agent обрабатывает: %s...", task[:50])
 
         source_code = ""
         if context and "file_content" in context:

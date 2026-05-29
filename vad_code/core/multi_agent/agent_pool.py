@@ -64,8 +64,10 @@ class AgentPool:
         self._workers: list[asyncio.Task[None]] = []
 
         log.info(
-            f"🏊 Пул агентов создан: {len(agents)} агентов, "
-            f"макс. параллельность: {self._config.max_concurrent_tasks}"
+            "🏊 Пул агентов создан: %d агентов, "
+            "макс. параллельность: %d",
+            len(agents),
+            self._config.max_concurrent_tasks,
         )
 
     @property
@@ -87,7 +89,7 @@ class AgentPool:
         """
         self._task_queue.put_nowait((task, context))
         self.stats["tasks_submitted"] += 1
-        log.debug(f"📋 Задача добавлена в очередь (всего: {self._task_queue.qsize()})")
+        log.debug("📋 Задача добавлена в очередь (всего: %d)", self._task_queue.qsize())
 
     async def process_next(self) -> TaskResult | None:
         """
@@ -129,7 +131,7 @@ class AgentPool:
 
         except asyncio.TimeoutError:
             self.stats["tasks_failed"] += 1
-            log.error(f"⏱️ Таймаут выполнения задачи: {task[:50]}...")
+            log.error("⏱️ Таймаут выполнения задачи: %s...", task[:50])
             return TaskResult(
                 agent_type=agent.agent_type,
                 success=False,
@@ -140,7 +142,7 @@ class AgentPool:
 
         except Exception as e:
             self.stats["tasks_failed"] += 1
-            log.error(f"❌ Ошибка выполнения задачи: {e}")
+            log.error("❌ Ошибка выполнения задачи: %s", e)
 
             # Повторная попытка
             if self._config.retry_on_failure:
@@ -178,7 +180,7 @@ class AgentPool:
                 )
 
             except Exception:
-                log.warning(f"⚠️ Попытка {attempt + 1}/{self._config.max_retries} не удалась")
+                log.warning("⚠️ Попытка %d/%d не удалась", attempt + 1, self._config.max_retries)
                 continue
 
         return TaskResult(

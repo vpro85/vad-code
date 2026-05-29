@@ -129,7 +129,7 @@ class FileSystemService:
                     try:
                         with open(file_path, "r", encoding="utf-8") as fh:
                             total += sum(1 for _ in fh)
-                    except UnicodeDecodeError, PermissionError:
+                    except (UnicodeDecodeError, PermissionError):
                         pass
             return total
         with open(path, "r", encoding="utf-8") as fh:

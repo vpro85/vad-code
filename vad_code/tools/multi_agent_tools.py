@@ -134,8 +134,10 @@ class MultiAgentTools:
             try:
                 force_agent = AgentType(agent_type.lower())
             except ValueError:
-                return f"❌ Неизвестный тип агента: `{agent_type}`. "
-                "Доступные: code_review, testing, documentation, security, general"
+                return (
+                    f"❌ Неизвестный тип агента: `{agent_type}`. "
+                    "Доступные: code_review, testing, documentation, security, general"
+                )
 
         result = await self._orchestrator.execute_task(
             task, context=context, force_agent=force_agent

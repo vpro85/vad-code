@@ -77,12 +77,10 @@ class BaseAgent(ABC):
     @abstractmethod
     def _setup_capabilities(self) -> None:
         """Настройка способностей агента. Должен быть переопределен в подклассах."""
-        ...
 
     @abstractmethod
     def get_system_prompt(self) -> str:
         """Возвращает системный промпт для агента."""
-        ...
 
     @abstractmethod
     async def handle_task(self, task: str, context: dict[str, Any] | None = None) -> str:
@@ -93,7 +91,6 @@ class BaseAgent(ABC):
         :param context: Контекст задачи (файлы, параметры и т.д.)
         :return: Результат выполнения
         """
-        ...
 
     def can_handle(self, task: str) -> float:
         """
@@ -125,8 +122,6 @@ class BaseAgent(ABC):
 
     async def close(self) -> None:
         """Освобождает ресурсы агента."""
-        # Подклассы могут переопределить для дополнительной очистки
-        pass
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} type={self.agent_type.value}>"

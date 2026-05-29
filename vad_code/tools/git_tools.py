@@ -3,7 +3,7 @@
 """
 
 import subprocess
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -58,7 +58,7 @@ class GitLogSchema(BaseModel):
 class GitBranchSchema(BaseModel):
     """Схема для git branch."""
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None, description="Имя ветки. Если None, показывает список веток."
     )
 
@@ -154,7 +154,7 @@ class GitTools:
         schema=GitDiffSchema,
         risk_level=ToolRiskLevel.READ,
     )
-    def git_diff(self, path: Optional[str] = None) -> str:
+    def git_diff(self, path: str | None = None) -> str:
         """Возвращает вывод git diff."""
         args = ["diff"]
         if path:
@@ -166,7 +166,7 @@ class GitTools:
         schema=GitDiffStagedSchema,
         risk_level=ToolRiskLevel.READ,
     )
-    def git_diff_staged(self, path: Optional[str] = None) -> str:
+    def git_diff_staged(self, path: str | None = None) -> str:
         """Возвращает вывод git diff --staged."""
         args = ["diff", "--staged"]
         if path:

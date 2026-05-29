@@ -113,7 +113,7 @@ class Orchestrator:
         for agent in agents:
             self.register_agent(agent)
 
-        log.info(f"🤖 Создано {len(agents)} специализированных агентов")
+        log.info("🤖 Создано %d специализированных агентов", len(agents))
 
     def register_agent(self, agent: BaseAgent) -> None:
         """Регистрирует агента в оркестраторе."""
@@ -121,7 +121,7 @@ class Orchestrator:
         self._agents[agent.agent_type] = agent
         self._agent_ids[agent.agent_type] = agent_id
         self.comm_bus.register_agent(agent_id)
-        log.info(f"🤖 Агент зарегистрирован: {agent}")
+        log.info("🤖 Агент зарегистрирован: %s", agent)
 
     def get_agent(self, agent_type: AgentType) -> BaseAgent | None:
         """Получает агента по типу."""
@@ -149,12 +149,14 @@ class Orchestrator:
 
         # Если ни один специализированный агент не подходит, используем общего
         if best_score < 0.3 or best_agent is None:
-            log.debug(f"🔍 Низкая оценка ({best_score:.2f}), используем общего агента")
+            log.debug("🔍 Низкая оценка (%.2f), используем общего агента", best_score)
             return AgentType.GENERAL
 
         log.info(
-            f"📍 Задача маршрутизирована -> {best_agent.value} "
-            f"(оценка: {best_score:.2f})"
+            "📍 Задача маршрутизирована -> %s "
+            "(оценка: %.2f)",
+            best_agent.value,
+            best_score,
         )
         return best_agent
 
@@ -213,8 +215,10 @@ class Orchestrator:
             agent.stats["tasks_completed"] += 1
 
             log.info(
-                f"✅ Задача выполнена агентом {agent_type.value} "
-                f"за {execution_time:.0f}ms"
+                "✅ Задача выполнена агентом %s "
+                "за %.0fms",
+                agent_type.value,
+                execution_time,
             )
 
             return TaskResult(
@@ -231,7 +235,9 @@ class Orchestrator:
             agent.stats["errors"] += 1
 
             log.error(
-                f"❌ Ошибка выполнения задачи агентом {agent_type.value}: {e}"
+                "❌ Ошибка выполнения задачи агентом %s: %s",
+                agent_type.value,
+                e,
             )
 
             return TaskResult(
@@ -252,7 +258,7 @@ class Orchestrator:
         :param tasks: Список кортежей (задача, контекст)
         :return: Список результатов
         """
-        log.info(f"🚀 Параллельное выполнение {len(tasks)} задач")
+        log.info("🚀 Параллельное выполнение %d задач", len(tasks))
 
         async def _execute(task: str, ctx: dict[str, Any] | None) -> TaskResult:
             return await self.execute_task(task, ctx)
@@ -262,7 +268,7 @@ class Orchestrator:
 
         # Обработка исключений
         final_results: list[TaskResult] = []
-        for i, result in enumerate(results):
+        for _, result in enumerate(results):
             if isinstance(result, Exception):
                 final_results.append(
                     TaskResult(

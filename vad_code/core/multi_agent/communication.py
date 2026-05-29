@@ -62,13 +62,13 @@ class CommunicationBus:
         """Регистрирует агента в шине коммуникации."""
         if agent_id not in self._queues:
             self._queues[agent_id] = asyncio.Queue(maxsize=100)
-            log.debug(f"📡 Агент {agent_id} зарегистрирован в шине")
+            log.debug("📡 Агент %s зарегистрирован в шине", agent_id)
 
     def unregister_agent(self, agent_id: str) -> None:
         """Удаляет агента из шины коммуникации."""
         if agent_id in self._queues:
             del self._queues[agent_id]
-            log.debug(f"📡 Агент {agent_id} удален из шины")
+            log.debug("📡 Агент %s удален из шины", agent_id)
 
     async def send(
         self,
@@ -107,19 +107,26 @@ class CommunicationBus:
                 if receiver in self._queues:
                     await self._queues[receiver].put(message)
                     log.debug(
-                        f"📨 [{message_type.value}] {sender} -> {receiver} "
-                        f"(task={message.task_id})"
+                        "📨 [%s] %s -> %s "
+                        "(task=%s)",
+                        message_type.value,
+                        sender,
+                        receiver,
+                        message.task_id,
                     )
                 else:
-                    log.warning(f"⚠️ Агент {receiver} не найден")
+                    log.warning("⚠️ Агент %s не найден", receiver)
             else:
                 # Broadcast всем агентам
                 for agent_id in self._queues:
                     if agent_id != sender:
                         await self._queues[agent_id].put(message)
                 log.debug(
-                    f"📢 [{message_type.value}] {sender} -> ALL "
-                    f"(task={message.task_id})"
+                    "📢 [%s] %s -> ALL "
+                    "(task=%s)",
+                    message_type.value,
+                    sender,
+                    message.task_id,
                 )
 
             return message
@@ -176,7 +183,7 @@ class CommunicationBus:
 
         if agent_id:
             filtered = [
-                m for m in filtered if m.sender == agent_id or m.receiver == agent_id
+                m for m in filtered if agent_id in (m.sender, m.receiver)
             ]
 
         if message_type:
