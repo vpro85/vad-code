@@ -52,8 +52,8 @@ def register_tool(
         schema: Pydantic-схема для валидации аргументов.
         risk_level: Уровень риска инструмента.
     """
-    # Импортируем здесь, чтобы избежать циклических импортов
-    from vad_code.tools import TOOL_REGISTRY
+    # Импортируем из отдельного модуля для избежания циклических импортов
+    from vad_code.tools.registry import TOOL_REGISTRY
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         TOOL_REGISTRY[func.__name__] = {

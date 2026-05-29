@@ -180,15 +180,16 @@ class ToolExecutor:
 
     async def execute(self, call_text: str) -> Optional[str]:
         """Выполняет зарегистрированный инструмент."""
-        func_name = "unknown"
-        args = {}
-        call_id = None
+        func_name: str = "unknown"
+        args: dict[str, Any] = {}
+        call_id: Optional[str] = None
         start_time = time.time()
 
         try:
             # 1. Парсинг JSON
             call_data = self._parse_call_data(call_text)
-            func_name = call_data.get("tool")
+            raw_tool = call_data.get("tool")
+            func_name = self._validate_tool_name(raw_tool)
             args = call_data.get("arguments", {})
 
             # 2. Валидация имени инструмента

@@ -1,6 +1,7 @@
 """Модуль агента — управляет историей, системным промптом и циклом вызовов инструментов"""
 
 import re
+from typing import Any
 
 import json5
 
@@ -122,7 +123,7 @@ class Agent:
         """Повторяет отмененное изменение."""
         return backup_manager.redo() or "Нет изменений для повтора."
 
-    def get_change_history(self) -> list[dict]:
+    def get_change_history(self) -> list[dict[str, Any]]:
         """Возвращает историю изменений файлов."""
         return backup_manager.get_history()
 
