@@ -349,11 +349,12 @@ class SecurityAgent(BaseAgent):
             AgentCapability(
                 name="security_audit",
                 description="Аудит безопасности кода",
-                priority=0.95,
+                priority=0.98,
                 keywords=[
                     "security", "безопасность", "audit", "аудит",
                     "vulnerability", "уязвимость", "cve",
                     "injection", "xss", "csrf",
+                    "уязвимости", "безопасен", "secure",
                 ],
             ),
             AgentCapability(

@@ -48,6 +48,8 @@ htmlcov/
 Thumbs.db
 
 .env
+/.vad_backups/
+agent.log*
 
 # Docker workspace (рабочая директория агента)
 workspace/

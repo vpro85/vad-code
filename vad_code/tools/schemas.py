@@ -363,3 +363,61 @@ class MarkBadCaseResolvedSchema(BaseModel):
 
     case_id: str = Field(..., description="ID случая")
     notes: str = Field("", description="Примечания о решении")
+
+
+# --- Мульти-агентные инструменты ---
+
+
+class RouteTaskSchema(BaseModel):
+    """Схема для маршрутизации задачи к подходящему агенту."""
+
+    task: str = Field(..., description="Описание задачи для маршрутизации")
+
+
+class ExecuteWithAgentSchema(BaseModel):
+    """Схема для выполнения задачи конкретным агентом."""
+
+    task: str = Field(..., description="Описание задачи")
+    agent_type: str = Field(
+        "",
+        description="Тип агента: code_review, testing, documentation, security, general. Пусто = автовыбор",
+    )
+    context: dict = Field(
+        default_factory=dict,
+        description="Контекст задачи (file_path, file_content и т.д.)",
+    )
+
+
+class ExecuteParallelTasksSchema(BaseModel):
+    """Схема для параллельного выполнения нескольких задач."""
+
+    tasks: list[str] = Field(..., description="Список задач для параллельного выполнения")
+    contexts: list[dict] = Field(
+        default_factory=list,
+        description="Список контекстов для каждой задачи (опционально)",
+    )
+
+
+class GetCommunicationHistorySchema(BaseModel):
+    """Схема для получения истории сообщений между агентами."""
+
+    agent_id: str = Field("", description="ID агента для фильтрации. Пусто = все агенты")
+    limit: int = Field(10, description="Максимальное количество сообщений", ge=1, le=100)
+
+
+class ListAgentsSchema(BaseModel):
+    """Схема для получения списка зарегистрированных агентов."""
+
+    pass
+
+
+class GetOrchestratorStatsSchema(BaseModel):
+    """Схема для получения статистики оркестратора."""
+
+    pass
+
+
+class ResetAgentsSchema(BaseModel):
+    """Схема для сброса статистики агентов."""
+
+    pass

@@ -7,12 +7,14 @@ from pathlib import Path
 from vad_code.config import settings
 from vad_code.core.agent import Agent
 from vad_code.core.executor import ToolExecutor
+from vad_code.core.multi_agent.orchestrator import Orchestrator
 from vad_code.infrastructure.llm_providers import create_provider
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.metrics import format_metrics, reset_metrics
 from vad_code.infrastructure.tokenizer import Tokenizer
 from vad_code.tools import FileTools, TOOL_REGISTRY
 from vad_code.tools.git_tools import GitTools
+from vad_code.tools.multi_agent_tools import MultiAgentTools
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
 
 VERSION = "0.4.0"
@@ -124,6 +126,16 @@ async def run(args: argparse.Namespace) -> None:
     # 2. Настраиваем инструменты
     file_tools = FileTools()
     git_tools = GitTools()
+    multi_agent_tools = MultiAgentTools()
+
+    # 3. Создаем оркестратор (если мульти-агентный режим включен)
+    orchestrator: Orchestrator | None = None
+    if settings.enable_multi_agent:
+        orchestrator = Orchestrator(llm_provider, executor, tokenizer)
+        orchestrator.create_default_agents()
+        multi_agent_tools.orchestrator = orchestrator
+        log.info("🤖 Мульти-агентный режим включен")
+
     for name, info in TOOL_REGISTRY.items():
         if hasattr(file_tools, name):
             method = getattr(file_tools, name)
@@ -132,6 +144,11 @@ async def run(args: argparse.Namespace) -> None:
             )
         elif hasattr(git_tools, name):
             method = getattr(git_tools, name)
+            executor.register_tool(
+                name, method, schema=info.get("schema"), metadata=info
+            )
+        elif hasattr(multi_agent_tools, name):
+            method = getattr(multi_agent_tools, name)
             executor.register_tool(
                 name, method, schema=info.get("schema"), metadata=info
             )
@@ -206,9 +223,23 @@ async def run(args: argparse.Namespace) -> None:
                     "  /audit-stats - показать статистику вызовов инструментов\n"
                     "  /metrics    - показать метрики сессии (время, токены, инструменты)\n"
                     "  /stats      - показать статистику сессии\n"
+                    "  /multi-agent - включить/выключить мульти-агентный режим\n"
                     "  /help       - показать это сообщение\n"
                     "  exit/quit   - выйти\n"
                 )
+                continue
+
+            # Переключение мульти-агентного режима
+            if user_input.lower() == "/multi-agent":
+                if not orchestrator:
+                    orchestrator = Orchestrator(llm_provider, executor, tokenizer)
+                    orchestrator.create_default_agents()
+                    multi_agent_tools.orchestrator = orchestrator
+                    log.info("🤖 Мульти-агентный режим включен!")
+                else:
+                    orchestrator = None
+                    multi_agent_tools.orchestrator = None
+                    log.info("🤖 Мульти-агентный режим выключен.")
                 continue
 
             await agent.handle(user_input)

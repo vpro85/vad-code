@@ -72,6 +72,51 @@ class Orchestrator:
 
         log.info("🎯 Оркестратор инициализирован")
 
+    def create_default_agents(self) -> None:
+        """Создает и регистрирует стандартных агентов."""
+        from vad_code.core.multi_agent.specialized_agents import (
+            CodeReviewAgent,
+            TestingAgent,
+            DocumentationAgent,
+            SecurityAgent,
+        )
+
+        agents = [
+            CodeReviewAgent(
+                agent_type=AgentType.CODE_REVIEW,
+                llm_client=self.llm_client,
+                executor=self.executor,
+                tokenizer=self.tokenizer,
+                system_prompt="",
+            ),
+            TestingAgent(
+                agent_type=AgentType.TESTING,
+                llm_client=self.llm_client,
+                executor=self.executor,
+                tokenizer=self.tokenizer,
+                system_prompt="",
+            ),
+            DocumentationAgent(
+                agent_type=AgentType.DOCUMENTATION,
+                llm_client=self.llm_client,
+                executor=self.executor,
+                tokenizer=self.tokenizer,
+                system_prompt="",
+            ),
+            SecurityAgent(
+                agent_type=AgentType.SECURITY,
+                llm_client=self.llm_client,
+                executor=self.executor,
+                tokenizer=self.tokenizer,
+                system_prompt="",
+            ),
+        ]
+
+        for agent in agents:
+            self.register_agent(agent)
+
+        log.info(f"🤖 Создано {len(agents)} специализированных агентов")
+
     def register_agent(self, agent: BaseAgent) -> None:
         """Регистрирует агента в оркестраторе."""
         agent_id = agent.agent_type.value
