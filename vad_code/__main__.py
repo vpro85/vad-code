@@ -153,6 +153,45 @@ async def run(args: argparse.Namespace) -> None:
                 name, method, schema=info.get("schema"), metadata=info
             )
 
+    # Явная регистрация инструментов мульти-агентности (из-за циклического импорта)
+    if settings.enable_multi_agent:
+        from vad_code.tools.schemas import (
+            ListAgentsSchema,
+            GetOrchestratorStatsSchema,
+            RouteTaskSchema,
+            ExecuteWithAgentSchema,
+            ExecuteParallelTasksSchema,
+            GetCommunicationHistorySchema,
+            ResetAgentsSchema,
+        )
+        from vad_code.tools.permissions import ToolRiskLevel
+
+        multi_agent_tool_defs = [
+            ("list_agents", ListAgentsSchema, ToolRiskLevel.READ),
+            ("get_orchestrator_stats", GetOrchestratorStatsSchema, ToolRiskLevel.READ),
+            ("route_task", RouteTaskSchema, ToolRiskLevel.READ),
+            ("execute_with_agent", ExecuteWithAgentSchema, ToolRiskLevel.WRITE),
+            ("execute_parallel_tasks", ExecuteParallelTasksSchema, ToolRiskLevel.WRITE),
+            ("get_communication_history", GetCommunicationHistorySchema, ToolRiskLevel.READ),
+            ("reset_agents", ResetAgentsSchema, ToolRiskLevel.WRITE),
+        ]
+
+        for tool_name, schema, risk_level in multi_agent_tool_defs:
+            if hasattr(multi_agent_tools, tool_name):
+                method = getattr(multi_agent_tools, tool_name)
+                executor.register_tool(
+                    tool_name,
+                    method,
+                    schema=schema,
+                    metadata={
+                        "description": f"Мульти-агентный инструмент: {tool_name}",
+                        "schema": schema,
+                        "func_name": tool_name,
+                        "risk_level": risk_level,
+                    },
+                )
+                log.info(f"🤖 Зарегистрирован мульти-агентный инструмент: {tool_name}")
+
     agent = Agent(llm_client=llm_provider, executor=executor, tokenizer=tokenizer)
 
     # Загрузка истории из файла
