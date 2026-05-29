@@ -104,7 +104,7 @@ class BaseAgent(ABC):
             return ""
 
         if "file_content" in context:
-            return context["file_content"]
+            return str(context["file_content"])
 
         if "file_path" in context:
             call_data = json.dumps({

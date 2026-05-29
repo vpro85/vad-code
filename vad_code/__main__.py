@@ -170,13 +170,15 @@ async def run(args: argparse.Namespace) -> None:
                 "list_agents",
                 ListAgentsSchema,
                 ToolRiskLevel.READ,
-                "Возвращает список всех зарегистрированных специализированных агентов (code_review, testing, documentation, security) и их возможности.",
+                "Возвращает список всех зарегистрированных специализированных агентов "
+                "(code_review, testing, documentation, security) и их возможности.",
             ),
             (
                 "get_orchestrator_stats",
                 GetOrchestratorStatsSchema,
                 ToolRiskLevel.READ,
-                "Возвращает статистику работы оркестратора и всех агентов: количество выполненных задач, время выполнения, ошибки.",
+                "Возвращает статистику работы оркестратора и всех агентов: "
+                "количество выполненных задач, время выполнения, ошибки.",
             ),
             (
                 "route_task",
@@ -188,7 +190,9 @@ async def run(args: argparse.Namespace) -> None:
                 "execute_with_agent",
                 ExecuteWithAgentSchema,
                 ToolRiskLevel.WRITE,
-                "Выполняет задачу через специализированного агента. Используйте для сложных задач: code review, написание тестов, документация, аудит безопасности.",
+                "Выполняет задачу через специализированного агента. "
+                "Используйте для сложных задач: code review, написание тестов, "
+                "документация, аудит безопасности.",
             ),
             (
                 "execute_parallel_tasks",

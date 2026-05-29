@@ -4,6 +4,7 @@ from typing import Any
 
 from vad_code.core.multi_agent.base_agent import AgentType
 from vad_code.core.multi_agent.orchestrator import Orchestrator
+from vad_code.infrastructure.logger import log
 from vad_code.tools.permissions import register_tool, ToolRiskLevel
 from vad_code.tools.schemas import (
     ListAgentsSchema,

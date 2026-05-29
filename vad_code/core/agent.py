@@ -14,7 +14,6 @@ from vad_code.infrastructure.bad_cases import bad_case_manager
 from vad_code.infrastructure.backup_manager import backup_manager
 from vad_code.infrastructure.audit_logger import audit_logger
 from vad_code.core.memory import ConversationMemory
-from vad_code.tools import TOOL_REGISTRY
 
 MAX_OBSERVATION_CHARS = 30_000
 

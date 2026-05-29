@@ -127,7 +127,7 @@ class GitTools:
             # Валидируем только аргументы, которые явно выглядят как пути к файлам
             # (содержат '/' или начинаются с '.'), чтобы не ломать имена веток/коммитов
             is_path_like = "/" in arg or arg.startswith(".")
-            
+
             if is_path_like and not arg.startswith("-"):
                 try:
                     safe_path = self.fs.safe_path(arg)
