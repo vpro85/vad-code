@@ -57,9 +57,11 @@ class Agent:
     # ------------------------------------------------------------------
 
     def _build_system_prompt(self) -> str:
+        # Берем инструменты из executor, а не из TOOL_REGISTRY
+        # чтобы включить мульти-агентные инструменты
         tools_text = "\n".join(
-            f"{i + 1}. {name}(...) - {info['description']}"
-            for i, (name, info) in enumerate(TOOL_REGISTRY.items())
+            f"{i + 1}. {name}(...) - {self.executor.metadata.get(name, {}).get('description', 'Нет описания')}"
+            for i, name in enumerate(self.executor.tools.keys())
         )
 
         # Определяем доступные уровни риска
@@ -72,12 +74,30 @@ class Agent:
                 level.value for level in permission_manager.allowed_levels
             )
 
+        # Проверяем, есть ли мульти-агентные инструменты
+        has_multi_agent = "execute_with_agent" in self.executor.tools
+
+        multi_agent_section = ""
+        if has_multi_agent:
+            multi_agent_section = (
+                "\nМУЛЬТИ-АГЕНТНАЯ СИСТЕМА:\n"
+                "У вас есть доступ к специализированным агентам для сложных задач:\n"
+                "- code_review: проверка кода на ошибки и лучшие практики\n"
+                "- testing: написание и запуск тестов\n"
+                "- documentation: генерация документации\n"
+                "- security: аудит безопасности кода\n\n"
+                "Используйте execute_with_agent для делегирования задач специализированным агентам.\n"
+                "Используйте execute_parallel_tasks для параллельного выполнения нескольких задач.\n"
+                "Используйте route_task для проверки, какой агент лучше подходит для задачи.\n\n"
+            )
+
         return (
             "Ты - AI-инженер, имеющий доступ к файловой системе в директории: "
             f"{settings.project_root}. "
             "Твоя задача - помогать пользователю анализировать и изменять код.\n\n"
             "ДОСТУПНЫЕ ИНСТРУМЕНТЫ:\n"
             f"{tools_text}\n\n"
+            f"{multi_agent_section}"
             "УРОВНИ РИСКА ИНСТРУМЕНТОВ:\n"
             "- READ: чтение файлов, просмотр структуры, git-лог (безопасно)\n"
             "- WRITE: запись файлов, создание директорий, git-коммиты (изменяет файлы)\n"

@@ -166,16 +166,51 @@ async def run(args: argparse.Namespace) -> None:
         )
 
         multi_agent_tool_defs = [
-            ("list_agents", ListAgentsSchema, ToolRiskLevel.READ),
-            ("get_orchestrator_stats", GetOrchestratorStatsSchema, ToolRiskLevel.READ),
-            ("route_task", RouteTaskSchema, ToolRiskLevel.READ),
-            ("execute_with_agent", ExecuteWithAgentSchema, ToolRiskLevel.WRITE),
-            ("execute_parallel_tasks", ExecuteParallelTasksSchema, ToolRiskLevel.WRITE),
-            ("get_communication_history", GetCommunicationHistorySchema, ToolRiskLevel.READ),
-            ("reset_agents", ResetAgentsSchema, ToolRiskLevel.WRITE),
+            (
+                "list_agents",
+                ListAgentsSchema,
+                ToolRiskLevel.READ,
+                "Возвращает список всех зарегистрированных специализированных агентов (code_review, testing, documentation, security) и их возможности.",
+            ),
+            (
+                "get_orchestrator_stats",
+                GetOrchestratorStatsSchema,
+                ToolRiskLevel.READ,
+                "Возвращает статистику работы оркестратора и всех агентов: количество выполненных задач, время выполнения, ошибки.",
+            ),
+            (
+                "route_task",
+                RouteTaskSchema,
+                ToolRiskLevel.READ,
+                "Определяет, какой специализированный агент лучше всего подходит для данной задачи.",
+            ),
+            (
+                "execute_with_agent",
+                ExecuteWithAgentSchema,
+                ToolRiskLevel.WRITE,
+                "Выполняет задачу через специализированного агента. Используйте для сложных задач: code review, написание тестов, документация, аудит безопасности.",
+            ),
+            (
+                "execute_parallel_tasks",
+                ExecuteParallelTasksSchema,
+                ToolRiskLevel.WRITE,
+                "Выполняет несколько независимых задач параллельно через разных агентов.",
+            ),
+            (
+                "get_communication_history",
+                GetCommunicationHistorySchema,
+                ToolRiskLevel.READ,
+                "Возвращает историю сообщений между агентами.",
+            ),
+            (
+                "reset_agents",
+                ResetAgentsSchema,
+                ToolRiskLevel.WRITE,
+                "Сбрасывает статистику всех агентов.",
+            ),
         ]
 
-        for tool_name, schema, risk_level in multi_agent_tool_defs:
+        for tool_name, schema, risk_level, description in multi_agent_tool_defs:
             if hasattr(multi_agent_tools, tool_name):
                 method = getattr(multi_agent_tools, tool_name)
                 executor.register_tool(
@@ -183,7 +218,7 @@ async def run(args: argparse.Namespace) -> None:
                     method,
                     schema=schema,
                     metadata={
-                        "description": f"Мульти-агентный инструмент: {tool_name}",
+                        "description": description,
                         "schema": schema,
                         "func_name": tool_name,
                         "risk_level": risk_level,

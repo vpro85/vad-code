@@ -20,7 +20,7 @@ class GitStatusSchema(BaseModel):
 class GitDiffSchema(BaseModel):
     """Схема для git diff."""
 
-    path: Optional[str] = Field(
+    path: str | None = Field(
         None,
         description="Путь к конкретному файлу для просмотра разницы. "
         "Если None, показывает все изменения.",
@@ -30,7 +30,7 @@ class GitDiffSchema(BaseModel):
 class GitDiffStagedSchema(BaseModel):
     """Схема для git diff --staged."""
 
-    path: Optional[str] = Field(
+    path: str | None = Field(
         None,
         description="Путь к конкретному файлу. "
         "Если None, показывает все staged изменения.",
@@ -205,7 +205,7 @@ class GitTools:
         schema=GitBranchSchema,
         risk_level=ToolRiskLevel.WRITE,
     )
-    def git_branch(self, name: Optional[str] = None) -> str:
+    def git_branch(self, name: str | None = None) -> str:
         """Выполняет git branch."""
         args = ["branch"]
         if name:

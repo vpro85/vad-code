@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     allowed_tool_risk_levels: str = "read,write,dangerous"
 
     # Мульти-агентный режим
-    enable_multi_agent: bool = False
+    enable_multi_agent: bool = True
 
 
 settings = Settings()
