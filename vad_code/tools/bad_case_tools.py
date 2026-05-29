@@ -34,7 +34,10 @@ class BadCaseTools:
                 error_type=error_type,
                 error_details=error_details,
             )
-            return f"Проблемный случай зарегистрирован: {case_id}. Теперь вы можете изучить его с помощью get_bad_case."
+            return (
+                f"Проблемный случай зарегистрирован: {case_id}. "
+                f"Теперь вы можете изучить его с помощью get_bad_case."
+            )
         except Exception as e:
             return f"Ошибка при регистрации случая: {e}"
 

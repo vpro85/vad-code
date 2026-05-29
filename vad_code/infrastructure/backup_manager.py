@@ -12,7 +12,10 @@ from vad_code.infrastructure.logger import log
 class ChangeRecord:
     """Запись об изменении файла."""
 
-    def __init__(self, file_path: str, backup_path: str, operation: str):
+    def __init__(
+        self, file_path: str, backup_path: str, operation: str
+    ) -> None:
+        """Инициализация записи об изменении."""
         self.file_path = file_path
         self.backup_path = backup_path
         self.operation = operation
@@ -27,7 +30,8 @@ class BackupManager:
     Поддерживает стек Undo и Redo.
     """
 
-    def __init__(self, backup_dir: str = ".vad_backups"):
+    def __init__(self, backup_dir: str = ".vad_backups") -> None:
+        """Инициализация менеджера бэкапов."""
         self.backup_dir = Path(backup_dir)
         self.undo_stack: list[ChangeRecord] = []
         self.redo_stack: list[ChangeRecord] = []

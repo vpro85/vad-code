@@ -54,7 +54,8 @@ class BaseAgent(ABC):
         :param llm_client: Провайдер LLM
         :param executor: Исполнитель инструментов
         :param tokenizer: Токенизатор
-        :param system_prompt: Системный промпт для агента. Если пустой, используется get_system_prompt()
+        :param system_prompt: Системный промпт для агента. Если пустой,
+        "используется get_system_prompt()"
         """
         self.agent_type = agent_type
         self.llm_client = llm_client

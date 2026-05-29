@@ -37,32 +37,50 @@ class ErrorMessages:
         },
         "file_not_found": {
             "message": "Файл не найден: {file_path}",
-            "suggestion": "Проверьте путь к файлу. Используйте list_files или list_tree для просмотра структуры.",
+            "suggestion": (
+                "Проверьте путь к файлу. Используйте list_files "
+                "или list_tree для просмотра структуры."
+            ),
             "example": 'Пример: {{"tool": "list_files", "arguments": {{"path": "."}}}}',
         },
         "permission_error": {
             "message": "Ошибка доступа к файлу: {file_path}",
-            "suggestion": "Проверьте права доступа к файлу. Возможно, файл заблокирован или требует root-прав.",
+            "suggestion": (
+                "Проверьте права доступа к файлу. Возможно, файл заблокирован "
+                "или требует root-прав."
+            ),
             "example": "Проверьте права: ls -la {file_path}",
         },
         "disk_full": {
             "message": "Недостаточно места на диске",
-            "suggestion": "Освободите место на диске или используйте другой путь для сохранения.",
+            "suggestion": (
+                "Освободите место на диске или используйте "
+                "другой путь для сохранения."
+            ),
             "example": "Проверьте свободное место: df -h",
         },
         "invalid_json": {
             "message": "Ошибка парсинга JSON",
-            "suggestion": "Проверьте формат JSON. Убедитесь, что все строки экранированы и скобки закрыты.",
+            "suggestion": (
+                "Проверьте формат JSON. Убедитесь, что все строки "
+                "экранированы и скобки закрыты."
+            ),
             "example": 'Пример: {{"tool": "read_file", "arguments": {{"path": "file.txt"}}}}',
         },
         "command_forbidden": {
             "message": "Команда запрещена: {command}",
-            "suggestion": "Эта команда находится в черном списке безопасности. Используйте разрешенные команды.",
+            "suggestion": (
+                "Эта команда находится в черном списке безопасности. "
+                "Используйте разрешенные команды."
+            ),
             "example": "Разрешенные команды: pytest, git, python, ls, cat, grep и др.",
         },
         "dangerous_pattern": {
             "message": "Обнаружен опасный паттерн: {pattern}",
-            "suggestion": "Этот паттерн может быть опасен для системы. Избегайте его использования.",
+            "suggestion": (
+                "Этот паттерн может быть опасен для системы. "
+                "Избегайте его использования."
+            ),
             "example": "Используйте безопасные альтернативы.",
         },
         "unexpected_error": {
@@ -111,7 +129,7 @@ class ErrorMessages:
         return "\n".join(lines)
 
     @classmethod
-    def _format_generic_error(cls, error_type: str, **kwargs: object) -> str:
+    def _format_generic_error(cls, _error_type: str, **kwargs: object) -> str:
         """Форматирует ошибку без шаблона."""
         message = kwargs.get("message", "Произошла ошибка")
         suggestion = kwargs.get("suggestion", "Проверьте параметры и попробуйте снова.")

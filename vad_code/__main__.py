@@ -184,7 +184,8 @@ async def run(args: argparse.Namespace) -> None:
                 "route_task",
                 RouteTaskSchema,
                 ToolRiskLevel.READ,
-                "Определяет, какой специализированный агент лучше всего подходит для данной задачи.",
+                "Определяет, какой специализированный агент "
+                "лучше всего подходит для данной задачи.",
             ),
             (
                 "execute_with_agent",
