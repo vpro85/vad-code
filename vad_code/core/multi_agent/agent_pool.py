@@ -49,7 +49,7 @@ class AgentPool:
         )
 
         # Активные задачи
-        self._active_tasks: dict[str, asyncio.Task] = {}
+        self._active_tasks: dict[str, asyncio.Task[None]] = {}
 
         # Статистика
         self.stats = {
@@ -61,7 +61,7 @@ class AgentPool:
 
         # Флаги управления
         self._running = False
-        self._workers: list[asyncio.Task] = []
+        self._workers: list[asyncio.Task[None]] = []
 
         log.info(
             f"🏊 Пул агентов создан: {len(agents)} агентов, "

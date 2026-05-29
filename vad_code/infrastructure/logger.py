@@ -39,9 +39,9 @@ def setup_logger() -> logging.Logger:
     # Формат для файла: JSON (структурированный)
     file_formatter = JsonFormatter(datefmt="%Y-%m-%dT%H:%M:%S")
 
-    # Вывод в консоль (только INFO и выше, чтобы не заспамить пользователя)
+    # Вывод в консоль (DEBUG для отладки поведения приложения)
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(console_formatter)
 
     # Запись всех деталей в файл с ротацией:

@@ -84,7 +84,7 @@ class CodeReviewAgent(BaseAgent):
             # Читаем файл через executor
             file_content = await self.executor.execute(
                 '{"tool": "read_file", "arguments": {"path": "' + context["file_path"] + '"}}'
-            )
+            ) or ""
 
         if not file_content:
             return "❌ Не удалось получить содержимое файла для review."
@@ -189,7 +189,7 @@ class TestingAgent(BaseAgent):
         elif context and "file_path" in context:
             source_code = await self.executor.execute(
                 '{"tool": "read_file", "arguments": {"path": "' + context["file_path"] + '"}}'
-            )
+            ) or ""
 
         if not source_code:
             return "❌ Не удалось получить исходный код для тестирования."
@@ -227,11 +227,11 @@ class TestingAgent(BaseAgent):
         """Отлаживает тесты."""
         test_output = ""
         if context and "test_output" in context:
-            test_output = context["test_output"]
+            test_output = context["test_output"] or ""
         else:
             test_output = await self.executor.execute(
                 '{"tool": "run_tests", "arguments": {"path": "tests/"}}'
-            )
+            ) or ""
 
         debug_prompt = (
             f"Проанализируй результаты тестов и предложи исправления:\n\n"
@@ -316,7 +316,7 @@ class DocumentationAgent(BaseAgent):
         elif context and "file_path" in context:
             source_code = await self.executor.execute(
                 '{"tool": "read_file", "arguments": {"path": "' + context["file_path"] + '"}}'
-            )
+            ) or ""
 
         if not source_code:
             return "❌ Не удалось получить содержимое для документации."
@@ -410,7 +410,7 @@ class SecurityAgent(BaseAgent):
         elif context and "file_path" in context:
             source_code = await self.executor.execute(
                 '{"tool": "read_file", "arguments": {"path": "' + context["file_path"] + '"}}'
-            )
+            ) or ""
 
         if not source_code:
             return "❌ Не удалось получить содержимое для аудита."

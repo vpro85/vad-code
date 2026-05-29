@@ -2,6 +2,8 @@
 Схемы валидации для инструментов.
 """
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 # --- Файловая система ---
@@ -382,7 +384,7 @@ class ExecuteWithAgentSchema(BaseModel):
         "",
         description="Тип агента: code_review, testing, documentation, security, general. Пусто = автовыбор",
     )
-    context: dict = Field(
+    context: dict[str, Any] = Field(
         default_factory=dict,
         description="Контекст задачи (file_path, file_content и т.д.)",
     )
@@ -392,7 +394,7 @@ class ExecuteParallelTasksSchema(BaseModel):
     """Схема для параллельного выполнения нескольких задач."""
 
     tasks: list[str] = Field(..., description="Список задач для параллельного выполнения")
-    contexts: list[dict] = Field(
+    contexts: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Список контекстов для каждой задачи (опционально)",
     )

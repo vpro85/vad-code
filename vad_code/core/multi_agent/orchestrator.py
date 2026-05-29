@@ -65,7 +65,7 @@ class Orchestrator:
             "tasks_routed": 0,
             "tasks_completed": 0,
             "tasks_failed": 0,
-            "total_execution_time_ms": 0,
+            "total_execution_time_ms": 0.0,
         }
 
         log.info("🎯 Оркестратор инициализирован")
@@ -148,7 +148,7 @@ class Orchestrator:
                 best_agent = agent.agent_type
 
         # Если ни один специализированный агент не подходит, используем общего
-        if best_score < 0.3:
+        if best_score < 0.3 or best_agent is None:
             log.debug(f"🔍 Низкая оценка ({best_score:.2f}), используем общего агента")
             return AgentType.GENERAL
 
@@ -156,7 +156,7 @@ class Orchestrator:
             f"📍 Задача маршрутизирована -> {best_agent.value} "
             f"(оценка: {best_score:.2f})"
         )
-        return best_agent or AgentType.GENERAL
+        return best_agent
 
     async def execute_task(
         self,
@@ -269,11 +269,12 @@ class Orchestrator:
                         agent_type=AgentType.GENERAL,
                         success=False,
                         result="",
-                        execution_time_ms=0,
+                        execution_time_ms=0.0,
                         error=str(result),
                     )
                 )
             else:
+                assert isinstance(result, TaskResult)
                 final_results.append(result)
 
         return final_results

@@ -145,7 +145,7 @@ class CommunicationBus:
 
     async def receive_all(self, agent_id: str) -> list[AgentMessage]:
         """Получает все ожидающие сообщения для агента."""
-        messages = []
+        messages: list[AgentMessage] = []
         if agent_id not in self._queues:
             return messages
 
