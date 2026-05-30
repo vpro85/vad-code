@@ -6,7 +6,6 @@ from typing import Any
 
 from vad_code.core.project_config import ProjectConfigManager
 from vad_code.core.project_memory import ProjectMemory
-from vad_code.infrastructure.logger import log
 
 
 def get_project_memory(project_root: str) -> ProjectMemory:
@@ -174,16 +173,17 @@ def config_set(key: str, value: str) -> str:
         return f"❌ Неизвестный ключ конфигурации: '{key}'. Доступные: {', '.join(sorted(valid_keys))}"
 
     # Преобразование типов
+    parsed_value: Any = value
     if key == "enable_multi_agent":
-        value = value.lower() in ("true", "1", "yes")
+        parsed_value = value.lower() in ("true", "1", "yes")
     elif key == "max_iterations":
-        value = int(value)
+        parsed_value = int(value)
     elif key in ("allowed_tools", "excluded_paths"):
-        value = [v.strip() for v in value.split(",") if v.strip()]
+        parsed_value = [v.strip() for v in value.split(",") if v.strip()]
 
-    setattr(manager.config, key, value)
+    setattr(manager.config, key, parsed_value)
     manager.save()
-    return f"✅ Конфигурация '{key}' установлена: {value}"
+    return f"✅ Конфигурация '{key}' установлена: {parsed_value}"
 
 
 def config_create_default() -> str:

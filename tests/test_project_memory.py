@@ -2,8 +2,6 @@
 Тесты для проектной памяти.
 """
 
-import json
-import tempfile
 from pathlib import Path
 
 import pytest

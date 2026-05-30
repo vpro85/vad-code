@@ -1,7 +1,5 @@
 """Smoke-тест: проверка базовых импортов при запуске приложения."""
 
-import pytest
-
 
 def test_import_project_tools():
     """Проверяет, что PROJECT_TOOLS импортируется из vad_code.tools."""
@@ -60,4 +58,3 @@ def test_main_module_imports():
     assert Agent is not None
     assert ToolExecutor is not None
     assert Tokenizer is not None
-

@@ -155,7 +155,7 @@ async def run(args: argparse.Namespace) -> None:
         elif name in PROJECT_TOOLS:
             method = PROJECT_TOOLS[name]
             executor.register_tool(
-                name, method, schema=info.get("schema"), metadata=info
+                name, method, schema=info.get("schema"), metadata=info  # type: ignore[arg-type]
             )
 
     # Явная регистрация инструментов мульти-агентности (из-за циклического импорта)

@@ -6,30 +6,30 @@ import pytest
 def test_import_all_modules():
     """Проверяет, что все основные модули импортируются без ошибок."""
     # Core
-    from vad_code.core.agent import Agent
-    from vad_code.core.executor import ToolExecutor
-    from vad_code.core.memory import ConversationMemory, SmartConversationMemory
-    from vad_code.config import settings
+    from vad_code.core.agent import Agent  # noqa: F401
+    from vad_code.core.executor import ToolExecutor  # noqa: F401
+    from vad_code.core.memory import ConversationMemory, SmartConversationMemory  # noqa: F401
+    from vad_code.config import settings  # noqa: F401
 
     # Infrastructure
-    from vad_code.infrastructure.llm_providers import (
+    from vad_code.infrastructure.llm_providers import (  # noqa: F401
         create_provider,
         OpenAICompatibleProvider,
         OllamaProvider,
         AnthropicProvider,
         BaseLLMProvider,
     )
-    from vad_code.infrastructure.tokenizer import Tokenizer
-    from vad_code.infrastructure.file_system import FileSystemService
-    from vad_code.infrastructure.logger import log
-    from vad_code.infrastructure.backup_manager import backup_manager
-    from vad_code.infrastructure.audit_logger import audit_logger
-    from vad_code.infrastructure.metrics import session_metrics
+    from vad_code.infrastructure.tokenizer import Tokenizer  # noqa: F401
+    from vad_code.infrastructure.file_system import FileSystemService  # noqa: F401
+    from vad_code.infrastructure.logger import log  # noqa: F401
+    from vad_code.infrastructure.backup_manager import backup_manager  # noqa: F401
+    from vad_code.infrastructure.audit_logger import audit_logger  # noqa: F401
+    from vad_code.infrastructure.metrics import session_metrics  # noqa: F401
 
     # Tools
-    from vad_code.tools.registry import TOOL_REGISTRY
-    from vad_code.tools.permissions import permission_manager, ToolRiskLevel
-    from vad_code.tools.schemas import ReadFileSchema, WriteFileSchema
+    from vad_code.tools.registry import TOOL_REGISTRY  # noqa: F401
+    from vad_code.tools.permissions import permission_manager, ToolRiskLevel  # noqa: F401
+    from vad_code.tools.schemas import ReadFileSchema, WriteFileSchema  # noqa: F401
 
     # Проверка, что настройки загружены
     assert settings.project_root is not None

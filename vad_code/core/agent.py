@@ -279,7 +279,7 @@ class Agent:
 
         for strategy in strategies:
             try:
-                fixed_text = strategy(text)
+                fixed_text = strategy(text)  # type: ignore[no-untyped-call]
                 if fixed_text and fixed_text != text:
                     data = json5.loads(fixed_text)
                     if isinstance(data, dict) and "tool" in data:

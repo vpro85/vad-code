@@ -2,9 +2,7 @@
 Модуль управления памятью агента
 """
 
-import json
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from vad_code.config import settings
@@ -44,7 +42,7 @@ class SmartConversationMemory:
 
     def add_message(self, role: str, content: str, priority: bool = False) -> None:
         """Добавляет сообщение в историю."""
-        msg = {"role": role, "content": content}
+        msg: dict[str, Any] = {"role": role, "content": content}
         if priority:
             msg["priority"] = priority
         self.history.append(msg)
