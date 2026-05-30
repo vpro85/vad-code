@@ -258,20 +258,66 @@ class Agent:
     @staticmethod
     def _try_parse_json(text: str) -> bool:
         """Пытается распарсить текст как JSON и проверить наличие ключа 'tool'."""
+        # Сначала пробуем распарсить как есть
         try:
             data = json5.loads(text)
             return isinstance(data, dict) and "tool" in data
         except ValueError:
-            # Пытаемся исправить распространенные ошибки JSON от LLM
-            # 1. Неэкранированные переносы строк внутри строк
-            # 2. Незакрытые фигурные/квадратные скобки
+            pass
+
+        # Пытаемся исправить распространенные ошибки JSON от LLM
+        strategies = [
+            # Стратегия 1: базовое исправление (переносы строк + баланс скобок)
+            lambda t: Agent._balance_braces(re.sub(r"(?<!\\)\n", "\\n", t)),
+            # Стратегия 2: удаление лишних закрывающих скобок в конце
+            lambda t: Agent._remove_trailing_braces(t),
+            # Стратегия 3: комбинация
+            lambda t: Agent._remove_trailing_braces(re.sub(r"(?<!\\)\n", "\\n", t)),
+            # Стратегия 4: попытка найти валидный JSON-подстроку
+            lambda t: Agent._extract_json_substring(t),
+        ]
+
+        for strategy in strategies:
             try:
-                fixed_text = re.sub(r"(?<!\\)\n", "\\n", text)
-                fixed_text = Agent._balance_braces(fixed_text)
-                data = json5.loads(fixed_text)
-                return isinstance(data, dict) and "tool" in data
+                fixed_text = strategy(text)
+                if fixed_text and fixed_text != text:
+                    data = json5.loads(fixed_text)
+                    if isinstance(data, dict) and "tool" in data:
+                        return True
             except ValueError:
-                return False
+                continue
+
+        return False
+
+    @staticmethod
+    def _remove_trailing_braces(text: str) -> str:
+        """Удаляет лишние закрывающие скобки в конце JSON."""
+        stripped = text.rstrip()
+        while stripped and stripped[-1] in ("}", "]"):
+            candidate = stripped[:-1]
+            try:
+                json5.loads(candidate)
+                stripped = candidate
+            except ValueError:
+                break
+        return stripped
+
+    @staticmethod
+    def _extract_json_substring(text: str) -> str | None:
+        """Пытается найти валидный JSON-объект внутри текста."""
+        start = text.find("{")
+        if start == -1:
+            return None
+
+        for end in range(len(text) - 1, start, -1):
+            if text[end] == "}":
+                candidate = text[start : end + 1]
+                try:
+                    json5.loads(candidate)
+                    return candidate
+                except ValueError:
+                    continue
+        return None
 
     @staticmethod
     def _get_tool_name(call_json: str) -> str:
