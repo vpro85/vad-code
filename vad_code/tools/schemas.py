@@ -423,3 +423,78 @@ class ResetAgentsSchema(BaseModel):
     """Схема для сброса статистики агентов."""
 
     pass
+
+
+# --- Проектная память ---
+
+
+class MemoryAddSchema(BaseModel):
+    """Схема для добавления записи в проектную память."""
+
+    key: str = Field(..., description="Уникальный ключ записи")
+    value: str = Field(..., description="Значение (текст записи)")
+    category: str = Field(
+        ...,
+        description="Категория: architecture, convention, decision, fact",
+    )
+    confidence: float = Field(
+        1.0, description="Уверенность (0.0 - 1.0)", ge=0.0, le=1.0
+    )
+
+
+class MemoryGetSchema(BaseModel):
+    """Схема для получения записи из проектной памяти."""
+
+    key: str = Field(..., description="Ключ записи")
+
+
+class MemorySearchSchema(BaseModel):
+    """Схема для поиска записей в проектной памяти."""
+
+    query: str = Field(..., description="Текст для поиска")
+
+
+class MemoryGetContextSchema(BaseModel):
+    """Схема для получения контекста из проектной памяти."""
+
+    pass
+
+
+class MemoryStatsSchema(BaseModel):
+    """Схема для получения статистики проектной памяти."""
+
+    pass
+
+
+class MemoryClearSchema(BaseModel):
+    """Схема для очистки проектной памяти."""
+
+    pass
+
+
+# --- Конфигурация проекта ---
+
+
+class ConfigGetSchema(BaseModel):
+    """Схема для получения текущей конфигурации проекта."""
+
+    pass
+
+
+class ConfigSetSchema(BaseModel):
+    """Схема для установки значения в конфигурации проекта."""
+
+    key: str = Field(..., description="Ключ конфигурации")
+    value: str = Field(..., description="Новое значение")
+
+
+class ConfigCreateDefaultSchema(BaseModel):
+    """Схема для создания файла конфигурации по умолчанию."""
+
+    pass
+
+
+class ConfigSaveSchema(BaseModel):
+    """Схема для сохранения текущей конфигурации."""
+
+    pass

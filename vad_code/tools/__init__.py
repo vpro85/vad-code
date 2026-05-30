@@ -12,6 +12,7 @@ from vad_code.tools.command_tools import CommandTools
 from vad_code.tools.bad_case_tools import BadCaseTools
 from vad_code.tools.file_tools import FileTools
 from vad_code.tools.registry import TOOL_REGISTRY
+from vad_code.tools.project_tools import PROJECT_TOOLS
 
 __all__ = [
     "FileSystemTools",
@@ -21,4 +22,5 @@ __all__ = [
     "BadCaseTools",
     "FileTools",
     "TOOL_REGISTRY",
+    "PROJECT_TOOLS",
 ]
