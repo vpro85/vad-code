@@ -12,7 +12,7 @@ from vad_code.infrastructure.llm_providers import create_provider
 from vad_code.infrastructure.logger import log
 from vad_code.infrastructure.metrics import format_metrics, reset_metrics
 from vad_code.infrastructure.tokenizer import Tokenizer
-from vad_code.tools import FileTools, TOOL_REGISTRY
+from vad_code.tools import FileTools, PROJECT_TOOLS, TOOL_REGISTRY
 from vad_code.tools.git_tools import GitTools
 from vad_code.tools.multi_agent_tools import MultiAgentTools
 from vad_code.tools.permissions import permission_manager, ToolRiskLevel
@@ -149,6 +149,11 @@ async def run(args: argparse.Namespace) -> None:
             )
         elif hasattr(multi_agent_tools, name):
             method = getattr(multi_agent_tools, name)
+            executor.register_tool(
+                name, method, schema=info.get("schema"), metadata=info
+            )
+        elif name in PROJECT_TOOLS:
+            method = PROJECT_TOOLS[name]
             executor.register_tool(
                 name, method, schema=info.get("schema"), metadata=info
             )
